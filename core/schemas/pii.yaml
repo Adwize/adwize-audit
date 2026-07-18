@@ -1,0 +1,5 @@
+# PII detection patterns for event/param names and outgoing request query strings.
+# Maintained by the schema-maintainer agent.
+token_pattern: '(e[_-]?mail|phone|tel|mobile|first[_-]?name|last[_-]?name|full[_-]?name|birth|ssn|passport)'
+param_key_pattern: '(?:^|[?&_.])(email|e-?mail|phone|tel|mobile|first_?name|last_?name|full_?name)='
+email_pattern: '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'

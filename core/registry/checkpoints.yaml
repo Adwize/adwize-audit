@@ -1,0 +1,698 @@
+checkpoints:
+- id: ga4.data_retention_set_to_14_months
+  category: Configuration
+  tool: GA4
+  description: Event & user data retention should be max (14mo), not the 2mo default, or historical exploration
+    data is lost.
+  how_to_check: Admin > Data Settings > Data Retention. Confirm 'Event data retention' = 14 months.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: properties.dataRetentionSettings.get'
+  severity: medium
+- id: ga4.reset_on_new_activity_intentional
+  category: Configuration
+  tool: GA4
+  description: '''Reset user data on new activity'' extends the retention window per active user; decision
+    should be deliberate.'
+  how_to_check: Admin > Data Settings > Data Retention. Check toggle state vs documented intent.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: properties.dataRetentionSettings.resetUserDataOnNewActivity'
+  severity: medium
+- id: ga4.timezone_correct
+  category: Configuration
+  tool: GA4
+  description: Reporting timezone must match business region; changing it is not retroactive and creates
+    a seam in data.
+  how_to_check: Admin > Property Settings > Reporting time zone.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: properties.get (timeZone)'
+  severity: medium
+- id: ga4.currency_correct
+  category: Configuration
+  tool: GA4
+  description: Revenue is reported in the property currency; wrong currency mis-states all monetary metrics.
+  how_to_check: Admin > Property Settings > Currency displayed as.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: properties.get (currencyCode)'
+  severity: medium
+- id: ga4.industry_category_set
+  category: Configuration
+  tool: GA4
+  description: Enables benchmarking and some modeled features.
+  how_to_check: Admin > Property Settings > Industry category.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: properties.get (industryCategory)'
+  severity: medium
+- id: ga4.property_architecture_justified
+  category: Configuration
+  tool: GA4
+  description: One property per business unit; data streams per platform, not per subdomain. Avoids fragmentation/over-splitting.
+  how_to_check: Admin > Account/Property tree. Map structure against business reality.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: properties.list, dataStreams.list'
+  severity: medium
+- id: ga4.reporting_identity_deliberate
+  category: Configuration
+  tool: GA4
+  description: Blended / Observed / Device-based affects user counts and cross-device; choice should be
+    documented.
+  how_to_check: Admin > Reporting Identity. Confirm selected mode matches intent.
+  source: ui
+  automation: manual
+  collector: ga4_admin
+  api_ref: Not exposed via API (UI-only); document manually
+  severity: medium
+- id: ga4.google_signals_state_intentional
+  category: Configuration
+  tool: GA4
+  description: On enables cross-device + demographics but triggers thresholding and consent obligations.
+  how_to_check: Admin > Data Collection > Google signals. Check on/off vs privacy stance.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: properties.googleSignalsSettings.get'
+  severity: medium
+- id: ga4.data_redaction_enabled
+  category: Configuration
+  tool: GA4
+  description: Email & URL query redaction strips inadvertently collected PII before storage.
+  how_to_check: Admin > Data Streams > [stream] > Redact data. Confirm email + query params on.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: dataStreams (UI toggle; verify in stream settings)'
+  severity: medium
+- id: ga4.user_access_least_privilege
+  category: Configuration
+  tool: GA4
+  description: No orphaned admins, ex-staff removed, service accounts documented.
+  how_to_check: Admin > Account/Property Access Management. Review roles.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: accessBindings.list'
+  severity: medium
+- id: ga4.bigquery_export_linked
+  category: Integrations
+  tool: GA4
+  description: Is a BigQuery link present at all? No link = no raw event-level data, no unsampled/advanced
+    analysis. Major missed opportunity.
+  how_to_check: Admin > Product Links > BigQuery. If empty, FAIL.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: bigQueryLinks.list (empty = not linked)'
+  severity: medium
+- id: ga4.bigquery_daily_streaming_intentional
+  category: Integrations
+  tool: GA4
+  description: If linked, confirm export type (daily, plus streaming for intraday) matches need.
+  how_to_check: Admin > BigQuery link > Daily / Streaming toggles.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: bigQueryLinks.get (dailyExportEnabled, streamingExportEnabled)'
+  severity: medium
+- id: ga4.google_ads_linked
+  category: Integrations
+  tool: GA4
+  description: Is an Ads link present? No link = no auto-tagging join, no GA4 audiences in Ads, no conversion
+    import, weaker smart bidding. Major missed opportunity.
+  how_to_check: Admin > Product Links > Google Ads. If empty, FAIL.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: googleAdsLinks.list (empty = not linked)'
+  severity: medium
+- id: ga4.ads_auto_tagging_personalization_on
+  category: Integrations
+  tool: GA4
+  description: If linked, confirm auto-tagging and ad personalization enabled.
+  how_to_check: Admin > Google Ads link settings; Ads > auto-tagging.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: googleAdsLinks.get (adsPersonalizationEnabled); Google Ads API auto_tagging'
+  severity: medium
+- id: ga4.search_console_linked
+  category: Integrations
+  tool: GA4
+  description: Is SC linked? No link = no organic query/landing-page data in GA4. Missed SEO attribution.
+  how_to_check: Admin > Product Links > Search Console. If empty, FAIL.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: searchConsoleLinks.list (empty = not linked)'
+  severity: medium
+- id: ga4.merchant_center_linked_if_ecommerce
+  category: Integrations
+  tool: GA4
+  description: 'For ecommerce/retail: MC link joins product + shopping data. N-A if not ecommerce.'
+  how_to_check: Admin > Product Links > Merchant Center.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: (Merchant Center link via UI; verify presence)'
+  severity: medium
+- id: ga4.other_gmp_links_reviewed
+  category: Integrations
+  tool: GA4
+  description: DV360 / SA360 links present where the media stack uses them.
+  how_to_check: Admin > Product Links (each). Confirm vs known stack.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: displayVideo360AdvertiserLinks.list, searchAds360Links.list'
+  severity: medium
+- id: ga4.no_orphaned_stale_links
+  category: Integrations
+  tool: GA4
+  description: Links to dead Ads accounts or unused BQ projects removed.
+  how_to_check: Admin > Product Links; cross-check each target still active.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: *Links.list vs target account status'
+  severity: medium
+- id: gtm.ga4_config_fires_once_per_page
+  category: Data Collection
+  tool: GTM
+  description: Double-firing config/page_view inflates sessions & page_views.
+  how_to_check: GTM Preview / Tag Assistant; or GA4 DebugView watch for duplicate page_view.
+  source: api
+  automation: auto
+  collector: gtm
+  api_ref: 'Tag Assistant; GTM API: accounts.containers.versions (tag audit)'
+  severity: medium
+- id: gtm.single_consistent_measurement_id
+  category: Data Collection
+  tool: GTM
+  description: One G- ID across all containers/pages; mixed IDs split data.
+  how_to_check: Inspect GA4 Config tag(s) / gtag snippet. grep page source for G- IDs.
+  source: api
+  automation: auto
+  collector: gtm
+  api_ref: 'GTM API: tags.list (filter googtag/gaawc); crawl source'
+  severity: medium
+- id: gtm.config_precedes_event_tags
+  category: Data Collection
+  tool: GTM
+  description: Config/init must fire before event tags or events drop params.
+  how_to_check: GTM tag firing priority + Preview order.
+  source: api
+  automation: auto
+  collector: gtm
+  api_ref: 'GTM API: tags.list (firingTriggerId, priority)'
+  severity: medium
+- id: gtm.datalayer_schema_consistent
+  category: Data Collection
+  tool: GTM
+  description: DataLayer pushed before tags, consistent key naming, no PII.
+  how_to_check: GTM Preview > Data Layer tab across key pages.
+  source: crawl
+  automation: auto
+  collector: crawl
+  api_ref: Manual / GTM Preview; crawl dataLayer pushes
+  severity: medium
+- id: gtm.container_published_no_stray_gtag
+  category: Data Collection
+  tool: GTM
+  description: Published version live; no hardcoded gtag alongside GTM causing double hits.
+  how_to_check: GTM Versions (published); view-source for rogue gtag.js.
+  source: api
+  automation: auto
+  collector: gtm
+  api_ref: 'GTM API: containers.versions.list (live=true); source crawl'
+  severity: medium
+- id: gtm_ss.server_container_claims_requests
+  category: Data Collection
+  tool: GTM SS
+  description: SS Client correctly claims incoming GA4 requests from web.
+  how_to_check: GTM SS Preview; confirm GA4 client claims the request.
+  source: api
+  automation: auto
+  collector: gcp_infra
+  api_ref: GTM API (server container); Cloud Run logs
+  severity: medium
+- id: gtm_ss.first_party_transport_url_set
+  category: Data Collection
+  tool: GTM SS
+  description: Custom first-party endpoint configured (not default GA collect), preserving cookies.
+  how_to_check: 'Network tab: GA hits go to your domain; GTM web config transport_url.'
+  source: api
+  automation: auto
+  collector: gcp_infra
+  api_ref: Inspect network requests; GTM API config tag fields
+  severity: medium
+- id: gtm_ss.consent_passed_to_server
+  category: Data Collection
+  tool: GTM SS
+  description: Consent state forwarded to SS container so downstream tags respect it.
+  how_to_check: GTM SS Preview > event consent params; check x-ga-gcs.
+  source: ui
+  automation: semi
+  collector: gcp_infra
+  api_ref: Cloud Run logs; GTM SS Preview
+  severity: medium
+- id: gtm_ss.server_container_healthy
+  category: Data Collection
+  tool: GTM SS
+  description: Cloud Run/App Engine instance up, no error spikes, autoscaling sane.
+  how_to_check: GCP Console > Cloud Run > revisions metrics/logs.
+  source: api
+  automation: auto
+  collector: gcp_infra
+  api_ref: Cloud Monitoring API; Cloud Logging API
+  severity: medium
+- id: ga4.first_party_cookies_set_fpid
+  category: Data Collection
+  tool: GA4
+  description: Server-set FPID extends cookie lifetime vs JS-set _ga.
+  how_to_check: Application > Cookies; confirm FPID present if intended.
+  source: crawl
+  automation: auto
+  collector: crawl
+  api_ref: Network/cookie inspection
+  severity: medium
+- id: ga4.event_inventory_complete
+  category: Data Collection
+  tool: GA4
+  description: Catalogue auto-collected / enhanced / recommended / custom events; no unknowns.
+  how_to_check: Admin > Events; Reports > Engagement > Events; DebugView.
+  source: api
+  automation: auto
+  collector: ga4_data
+  api_ref: 'Admin API: (events via Data API runReport dimension eventName)'
+  severity: medium
+- id: ga4.enhanced_measurement_reviewed
+  category: Data Collection
+  tool: GA4
+  description: Each sub-option (scroll, outbound, site search, video, file, forms) intentional & not duplicating
+    custom events.
+  how_to_check: Admin > Data Streams > [web] > Enhanced measurement (gear).
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: dataStreams.webStreamData.enhancedMeasurementSettings'
+  severity: medium
+- id: ga4.naming_convention_consistent
+  category: Data Collection
+  tool: GA4
+  description: snake_case, documented taxonomy, no ad-hoc duplicates (purchase vs Purchase).
+  how_to_check: Admin > Events list; Data API eventName scan for casing/variants.
+  source: api
+  automation: auto
+  collector: ga4_data
+  api_ref: 'Data API: runReport (eventName)'
+  severity: medium
+- id: ga4.recommended_event_names_used
+  category: Data Collection
+  tool: GA4
+  description: Using Google's reserved/recommended names unlocks reports (ecommerce, login, sign_up).
+  how_to_check: Compare event list to Google recommended events spec.
+  source: api
+  automation: auto
+  collector: ga4_data
+  api_ref: 'Data API: runReport (eventName) vs reference list'
+  severity: medium
+- id: ga4.no_pii_in_events
+  category: Data Collection
+  tool: GA4
+  description: No email/phone/name in event names, params, or user properties.
+  how_to_check: DebugView raw params; BigQuery scan of event_params.
+  source: ui
+  automation: semi
+  collector: bigquery
+  api_ref: 'BigQuery: regex scan event_params.value'
+  severity: medium
+- id: ga4.no_duplicate_events
+  category: Data Collection
+  tool: GA4
+  description: e.g. enhanced page_view + manual page_view both firing.
+  how_to_check: DebugView; compare event counts vs expected.
+  source: api
+  automation: auto
+  collector: ga4_data
+  api_ref: 'Data API: runReport; DebugView'
+  severity: medium
+- id: ga4.key_events_defined_firing
+  category: Configuration
+  tool: GA4
+  description: Conversions marked and validated live in DebugView/Realtime.
+  how_to_check: Admin > Events > toggle 'Mark as key event'; verify in Realtime.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: keyEvents.list'
+  severity: medium
+- id: ga4.key_event_counting_method_correct
+  category: Configuration
+  tool: GA4
+  description: '''Once per event'' vs ''once per session'' set appropriately per conversion.'
+  how_to_check: Admin > Key events > [event] counting method.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: keyEvents.get (countingMethod)'
+  severity: medium
+- id: ga4.ecommerce_funnel_complete
+  category: Data Collection
+  tool: GA4
+  description: view_item > add_to_cart > begin_checkout > purchase implemented with items[] schema.
+  how_to_check: DebugView on a test purchase path; check items array fields.
+  source: api
+  automation: auto
+  collector: ga4_data
+  api_ref: Data API runReport; BigQuery items unnest
+  severity: medium
+- id: ga4.transaction_ids_unique
+  category: Data Collection
+  tool: GA4
+  description: Duplicate transaction_id inflates revenue/purchases.
+  how_to_check: 'BigQuery: count distinct transaction_id vs purchase events.'
+  source: ui
+  automation: semi
+  collector: bigquery
+  api_ref: 'BigQuery: GROUP BY transaction_id HAVING COUNT>1'
+  severity: medium
+- id: ga4.revenue_reconciles_to_source
+  category: Reporting
+  tool: GA4
+  description: GA4 purchase revenue matches backend within tolerance.
+  how_to_check: Pull date-range revenue, compare to platform/back-office.
+  source: api
+  automation: auto
+  collector: ga4_data
+  api_ref: Data API runReport (purchaseRevenue) vs source system
+  severity: medium
+- id: ga4.custom_definitions_inventory_limits
+  category: Configuration
+  tool: GA4
+  description: Each custom dim/metric used in a report; watch 50 event / 25 user limits.
+  how_to_check: Admin > Custom definitions. Cross-check usage; prune unused.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: customDimensions.list, customMetrics.list'
+  severity: medium
+- id: ga4.custom_definition_scope_correct
+  category: Configuration
+  tool: GA4
+  description: Event / user / item scope matches intent; high-cardinality flagged.
+  how_to_check: Admin > Custom definitions scope column.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: customDimensions.list (scope)'
+  severity: medium
+- id: ga4.other_row_investigated
+  category: Data Quality
+  tool: GA4
+  description: High-cardinality pushes rows into (other); signals dimension design issue.
+  how_to_check: Reports/Explore showing '(other)'. Identify offending dimension.
+  source: api
+  automation: auto
+  collector: ga4_data
+  api_ref: 'Data API: runReport; check cardinality'
+  severity: medium
+- id: ga4.not_set_audited
+  category: Data Quality
+  tool: GA4
+  description: Identify which dimensions show (not set) and why (tagging gaps).
+  how_to_check: Explore by dimension; isolate (not set) volume.
+  source: api
+  automation: auto
+  collector: ga4_data
+  api_ref: 'Data API: runReport filter dimension=''(not set)'''
+  severity: medium
+- id: ga4.direct_unassigned_anomalies
+  category: Data Quality
+  tool: GA4
+  description: Excess direct = broken tagging, stripped UTMs, redirect loss.
+  how_to_check: Reports > Acquisition; check Direct & Unassigned share.
+  source: api
+  automation: auto
+  collector: ga4_data
+  api_ref: 'Data API: runReport (sessionDefaultChannelGroup)'
+  severity: medium
+- id: gtm.bot_internal_traffic_excluded
+  category: Data Quality
+  tool: GTM
+  description: Known bots auto-excluded; check for anomalous spikes.
+  how_to_check: Reports trend anomalies; verify filters active (see below).
+  source: api
+  automation: auto
+  collector: gtm
+  api_ref: Data API runReport; Admin API filters
+  severity: medium
+- id: ga4.internal_traffic_filter_active
+  category: Configuration
+  tool: GA4
+  description: 'Common gap: filter defined but left in ''Testing'', so internal traffic still counts.'
+  how_to_check: Admin > Data Settings > Data Filters. State must = Active.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: properties.dataFilters (state)'
+  severity: medium
+- id: ga4.internal_traffic_param_populating
+  category: Data Collection
+  tool: GA4
+  description: traffic_type=internal actually set via IP-based rule on stream.
+  how_to_check: Admin > Data Streams > Configure tag settings > Define internal traffic.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: dataStreams tag settings'
+  severity: medium
+- id: ga4.unwanted_referrals_configured
+  category: Configuration
+  tool: GA4
+  description: Payment gateways / own domains excluded to prevent self-referral session splits.
+  how_to_check: Admin > Data Streams > Configure tag > List unwanted referrals.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: dataStreams tag settings (unwanted referrals)'
+  severity: medium
+- id: gtm.cross_domain_measurement_set
+  category: Data Collection
+  tool: GTM
+  description: All owned domains configured; sessions persist, no self-referral.
+  how_to_check: Admin > Configure tag settings > Configure your domains; test linker.
+  source: api
+  automation: auto
+  collector: gtm
+  api_ref: 'Admin API: dataStreams tag settings (cross-domain)'
+  severity: medium
+- id: ga4.attribution_model_documented
+  category: Attribution
+  tool: GA4
+  description: Data-driven vs last-click chosen deliberately; affects conversion credit.
+  how_to_check: Admin > Attribution Settings > Reporting attribution model.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: attributionSettings.get'
+  severity: medium
+- id: ga4.conversion_windows_reviewed
+  category: Attribution
+  tool: GA4
+  description: Acquisition & other conversion lookback windows appropriate for sales cycle.
+  how_to_check: Admin > Attribution Settings > windows.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: attributionSettings (lookback windows)'
+  severity: medium
+- id: ga4.channel_groupings_clean
+  category: Attribution
+  tool: GA4
+  description: UTMs map to intended channels; custom channel group if defaults misclassify.
+  how_to_check: Reports > Acquisition; inspect (Unassigned)/misrouted traffic.
+  source: api
+  automation: auto
+  collector: ga4_data
+  api_ref: 'Data API: runReport (sessionDefaultChannelGroup)'
+  severity: medium
+- id: gtm.utm_taxonomy_enforced
+  category: Attribution
+  tool: GTM
+  description: Lowercase, consistent source/medium/campaign naming; documented.
+  how_to_check: BigQuery/Explore distinct source/medium values for casing variance.
+  source: crawl
+  automation: auto
+  collector: crawl
+  api_ref: 'BigQuery: GROUP BY source, medium'
+  severity: medium
+- id: google_ads.gclid_auto_tagging_intact
+  category: Attribution
+  tool: Google Ads
+  description: Auto-tagging on; manual UTMs not overwriting GCLID on paid.
+  how_to_check: Ads > Account Settings > Auto-tagging = on; check landing URLs.
+  source: api
+  automation: auto
+  collector: google_ads
+  api_ref: 'Google Ads API: customer.auto_tagging_enabled'
+  severity: medium
+- id: google_ads.audiences_populating
+  category: Attribution
+  tool: Google Ads
+  description: Shared GA4 audiences exceed min size and are active in Ads.
+  how_to_check: Ads > Audience Manager; GA4 Admin > Audiences.
+  source: api
+  automation: auto
+  collector: google_ads
+  api_ref: 'Admin API: audiences.list; Google Ads API user_list'
+  severity: medium
+- id: google_ads.no_conversion_double_count
+  category: Attribution
+  tool: Google Ads
+  description: GA4-imported conversions not duplicating native Ads tags.
+  how_to_check: Ads > Conversions; confirm one primary source per action.
+  source: api
+  automation: auto
+  collector: google_ads
+  api_ref: 'Google Ads API: conversion_action'
+  severity: medium
+- id: gtm.consent_mode_v2_implemented
+  category: Privacy
+  tool: GTM
+  description: Default consent set before tags; basic vs advanced documented.
+  how_to_check: GTM Preview > Consent tab; check default/update states.
+  source: api
+  automation: auto
+  collector: gtm
+  api_ref: 'GTM API: tags consent settings; Tag Assistant consent'
+  severity: medium
+- id: gtm.all_4_consent_signals_present
+  category: Privacy
+  tool: GTM
+  description: ad_storage, analytics_storage, ad_user_data, ad_personalization all sent.
+  how_to_check: 'Network: x-ga-gcs / gcd params; CMP integration check.'
+  source: crawl
+  automation: auto
+  collector: crawl
+  api_ref: Inspect network params; CMP config
+  severity: medium
+- id: gtm_ss.consent_honored_server_side
+  category: Privacy
+  tool: GTM SS
+  description: SS tags suppress/adjust based on forwarded consent state.
+  how_to_check: GTM SS Preview consent params per tag.
+  source: ui
+  automation: semi
+  collector: gcp_infra
+  api_ref: GTM SS logs; Preview
+  severity: medium
+- id: ga4.no_pii_collected_anywhere
+  category: Privacy
+  tool: GA4
+  description: Confirm via raw params no email/phone/userID-as-PII.
+  how_to_check: DebugView raw view; BigQuery param scan.
+  source: ui
+  automation: semi
+  collector: bigquery
+  api_ref: BigQuery scan; DebugView
+  severity: medium
+- id: ga4.data_processing_terms_accepted
+  category: Configuration
+  tool: GA4
+  description: DPA/regional settings accepted for compliance.
+  how_to_check: Admin > Account Settings > Data Processing Terms.
+  source: ui
+  automation: manual
+  collector: ga4_admin
+  api_ref: Not via API; verify in UI
+  severity: medium
+- id: bigquery.export_complete_no_gaps
+  category: Data Quality
+  tool: BigQuery
+  description: No missing daily tables / failed loads.
+  how_to_check: 'BQ: list events_YYYYMMDD tables; check for gaps.'
+  source: api
+  automation: auto
+  collector: bigquery
+  api_ref: 'BigQuery API: tables.list; INFORMATION_SCHEMA'
+  severity: medium
+- id: bigquery.bq_vs_ui_reconciliation
+  category: Data Quality
+  tool: BigQuery
+  description: Event counts in BQ vs GA4 UI within expected variance.
+  how_to_check: Run count query in BQ vs Data API totals.
+  source: api
+  automation: auto
+  collector: bigquery
+  api_ref: BigQuery jobs.query vs Data API runReport
+  severity: medium
+- id: bigquery.export_cost_monitored
+  category: Data Quality
+  tool: BigQuery
+  description: Streaming + storage cost tracked; intraday only if needed.
+  how_to_check: GCP Billing > BigQuery; export type vs need.
+  source: api
+  automation: auto
+  collector: bigquery
+  api_ref: Cloud Billing API
+  severity: medium
+- id: reporting.source_of_truth_correct
+  category: Reporting
+  tool: Reporting
+  description: Evidence.dev / Looker pulling from right layer (BQ vs Data API) consistently.
+  how_to_check: Inspect dashboard connections & queries.
+  source: api
+  automation: auto
+  collector: null
+  api_ref: Data API / BigQuery (downstream config)
+  severity: medium
+- id: reporting.standard_reports_customized
+  category: Reporting
+  tool: Reporting
+  description: Default reports tailored to business; not left stock.
+  how_to_check: GA4 Reports library; check customizations/collections.
+  source: ui
+  automation: manual
+  collector: null
+  api_ref: Manual review
+  severity: medium
+- id: ga4.audiences_purposeful
+  category: Reporting
+  tool: GA4
+  description: No orphaned audiences; each tied to activation/analysis.
+  how_to_check: Admin > Audiences; map each to a use.
+  source: api
+  automation: auto
+  collector: ga4_admin
+  api_ref: 'Admin API: audiences.list'
+  severity: medium
+- id: reporting.documentation_exists
+  category: Reporting
+  tool: Reporting
+  description: Measurement plan, event spec, naming conventions maintained (audit feeds this).
+  how_to_check: Confirm living doc/repo; cross-check vs implementation.
+  source: ui
+  automation: semi
+  collector: null
+  api_ref: Repo / measurement plan doc
+  severity: medium
+- id: reporting.data_freshness_communicated
+  category: Reporting
+  tool: Reporting
+  description: Latency (24-48h processing, BQ delays) understood by stakeholders.
+  how_to_check: Confirm SLA/notes in reporting layer.
+  source: ui
+  automation: manual
+  collector: null
+  api_ref: Manual
+  severity: medium

@@ -1,0 +1,263 @@
+# Crawl-native checkpoints — evaluated with NO account access, from a public
+# page render + the public gtm.js container. Hand-maintained (not CSV-derived).
+checkpoints:
+  - id: crawl.gtm_installed
+    category: Data Collection
+    tool: GTM
+    description: A Google Tag Manager container is present and firing on the page.
+    how_to_check: Render the page; look for googletagmanager.com/gtm.js in the DOM.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: critical
+
+  - id: crawl.gtm_in_head
+    category: Data Collection
+    tool: GTM
+    description: The GTM snippet loads from <head> for earliest possible execution.
+    how_to_check: Confirm the gtm.js reference appears before <body>.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: medium
+
+  - id: crawl.single_container
+    category: Data Collection
+    tool: GTM
+    description: Exactly one GTM container loads on the page (multiple cause conflicts/duplication).
+    how_to_check: Count distinct GTM-XXXX ids in the rendered page.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: high
+
+  - id: crawl.no_hardcoded_ga4_duplicate
+    category: Data Quality
+    tool: GA4
+    description: GA4 is not loaded both hardcoded (gtag.js) and via GTM (double-counts hits).
+    how_to_check: Detect hardcoded gtag G- id while GTM container also configures GA4.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: critical
+
+  - id: crawl.no_hardcoded_ads_duplicate
+    category: Data Quality
+    tool: Google Ads
+    description: Google Ads is not loaded both hardcoded (AW- gtag) and via GTM.
+    how_to_check: Detect hardcoded AW- gtag while GTM container also has Ads tags.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: critical
+
+  - id: crawl.datalayer_present
+    category: Data Collection
+    tool: GTM
+    description: A dataLayer is initialised and receives pushes.
+    how_to_check: Look for dataLayer init and dataLayer.push() usage.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: medium
+
+  - id: crawl.datalayer_push_order
+    category: Data Collection
+    tool: GTM
+    description: dataLayer.push() calls do not precede the GTM snippet (early pushes are lost).
+    how_to_check: Confirm no push() appears before the gtm.js reference.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: high
+
+  - id: crawl.consent_mode_present
+    category: Privacy
+    tool: GTM
+    description: Google Consent Mode is configured when advertising tags are present.
+    how_to_check: Look for gtag('consent', ...) / a detected CMP alongside ad tags.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: high
+
+  - id: crawl.consent_signals_sent
+    category: Privacy
+    tool: GTM
+    description: Consent state is transmitted with hits (gcs/gcd params on /g/collect).
+    how_to_check: Inspect network beacons for gcs/gcd parameters.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: medium
+
+  - id: crawl.noscript_fallback
+    category: Data Collection
+    tool: GTM
+    description: The GTM <noscript> iframe fallback is present for JS-disabled visitors.
+    how_to_check: Look for googletagmanager.com/ns.html in a <noscript>.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: low
+
+  - id: crawl.cross_domain_linker
+    category: Attribution
+    tool: GTM
+    description: When cross-domain is configured, the linker (_gl) decoration is present.
+    how_to_check: Detect linker config in the container and _gl decoration on links.
+    source: crawl
+    automation: semi
+    collector: crawl
+    severity: high
+
+  - id: crawl.server_side_transport
+    category: Data Collection
+    tool: GTM SS
+    description: Server-side tagging via a first-party transport_url is detected (informational).
+    how_to_check: Look for transport_url / first-party collect endpoints in beacons.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: info
+
+  - id: crawl.third_party_script_sprawl
+    category: Data Quality
+    tool: GTM
+    description: The page loads a reasonable number of third-party script domains.
+    how_to_check: Count distinct external script domains.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: low
+
+  - id: crawl.container_parsed
+    category: Data Collection
+    tool: GTM
+    description: All discovered GTM containers were successfully parsed.
+    how_to_check: Check that each fetched gtm.js returned parseable content.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: medium
+
+  - id: crawl.no_legacy_ua
+    category: Data Collection
+    tool: GA4
+    description: No legacy Universal Analytics (UA-) property is still loading.
+    how_to_check: Detect UA-XXXXXXX-X measurement IDs in gtag or page source.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: low
+
+  - id: crawl.no_duplicate_measurement_ids
+    category: Data Quality
+    tool: GA4
+    description: Each GA4 measurement ID appears in only one container.
+    how_to_check: Check for the same G- ID configured in multiple GTM containers.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: high
+
+  # --- enriched from the public container + network beacons ---
+  - id: crawl.event_inventory
+    category: Data Collection
+    tool: GA4
+    description: Inventory of GA4 events configured in the container (informational baseline).
+    how_to_check: Enumerate vtp_eventName across GA4 event tags in the public container.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: info
+
+  - id: crawl.event_naming_convention
+    category: Data Collection
+    tool: GA4
+    description: Event names follow a single convention (snake_case) with no casing duplicates.
+    how_to_check: Check container event names for casing variants / mixed conventions.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: medium
+
+  - id: crawl.recommended_event_names
+    category: Data Collection
+    tool: GA4
+    description: Google's recommended event names are used where applicable (unlocks reports).
+    how_to_check: Compare container event names against Google's recommended-events list.
+    source: crawl
+    automation: semi
+    collector: crawl
+    severity: low
+
+  - id: crawl.ecommerce_funnel
+    category: Data Collection
+    tool: GA4
+    description: When ecommerce is present, the core funnel events are implemented.
+    how_to_check: Check for view_item > add_to_cart > begin_checkout > purchase in the container.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: medium
+
+  - id: crawl.no_pii_in_events
+    category: Privacy
+    tool: GA4
+    description: No PII (email/phone/name) appears in event or parameter names.
+    how_to_check: Scan container event names for PII-looking tokens.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: high
+
+  - id: crawl.no_pii_in_network
+    category: Privacy
+    tool: GA4
+    description: No PII (email/phone/name) leaks into outgoing request query strings.
+    how_to_check: Scan captured request URLs for emails / PII parameter keys.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: critical
+
+  - id: crawl.enhanced_conversions_review
+    category: Privacy
+    tool: GA4
+    description: Enhanced conversions / user-provided data collection is deliberate and consented.
+    how_to_check: Check container flags (enableEuid / enhancedUserId / user properties).
+    source: crawl
+    automation: semi
+    collector: crawl
+    severity: medium
+
+  - id: crawl.custom_html_tags
+    category: Data Quality
+    tool: GTM
+    description: Custom HTML/JS tags are reviewed (security, performance, and PII risk).
+    how_to_check: Count __html tags in the public container.
+    source: crawl
+    automation: semi
+    collector: crawl
+    severity: medium
+
+  - id: crawl.vendor_inventory
+    category: Data Collection
+    tool: GTM
+    description: Inventory of martech/advertising vendors detected on the page (informational).
+    how_to_check: Match vendor signatures across HTML + network beacons.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: info
+
+  - id: crawl.third_party_cookies
+    category: Privacy
+    tool: GTM
+    description: Third-party cookie count is reasonable (privacy / deprecation exposure).
+    how_to_check: Count third-party cookies set after render.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: low

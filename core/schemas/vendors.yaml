@@ -1,0 +1,37 @@
+# Martech/vendor signatures matched against page HTML + network request URLs.
+# Grows as new vendors appear; maintained by the schema-maintainer agent.
+vendors:
+  # Analytics
+  - { name: "Google Analytics 4", category: analytics, pattern: 'googletagmanager\.com/gtag/js\?id=G-|/g/collect' }
+  - { name: "Contentsquare", category: analytics, pattern: 'contentsquare\.net|\bcs\.js\b|_uxa' }
+  - { name: "Hotjar", category: analytics, pattern: 'static\.hotjar\.com|\bhj\(' }
+  - { name: "Amplitude", category: analytics, pattern: 'cdn\.amplitude\.com|amplitude\.getInstance' }
+  - { name: "Segment", category: analytics, pattern: 'cdn\.segment\.(com|io)|analytics\.js' }
+  - { name: "Adobe Analytics", category: analytics, pattern: 'omtrdc\.net|/b/ss/|s_code' }
+  - { name: "Matomo", category: analytics, pattern: 'matomo\.js|piwik\.js|_paq' }
+  - { name: "Piano/AT Internet", category: analytics, pattern: 'xiti\.com|aticdn|pa\.js' }
+  # Advertising
+  - { name: "Google Ads", category: advertising, pattern: 'googleadservices\.com|googletagmanager\.com/gtag/js\?id=AW-|AW-\d{6,}' }
+  - { name: "Floodlight / DV360", category: advertising, pattern: 'fls\.doubleclick\.net|\bDC-\d{6,}\b|/activityi;' }
+  - { name: "Meta Pixel", category: advertising, pattern: 'connect\.facebook\.net|fbevents\.js|\bfbq\(|facebook\.com/tr' }
+  - { name: "LinkedIn Insight", category: advertising, pattern: 'snap\.licdn\.com|_linkedin_|px\.ads\.linkedin\.com' }
+  - { name: "TikTok Pixel", category: advertising, pattern: 'analytics\.tiktok\.com|\bttq\.' }
+  - { name: "Microsoft/Bing UET", category: advertising, pattern: 'bat\.bing\.com|\buetq\b' }
+  - { name: "Criteo", category: advertising, pattern: 'static\.criteo\.net|criteo_q' }
+  - { name: "Snapchat Pixel", category: advertising, pattern: 'sc-static\.net|\bsnaptr\(' }
+  - { name: "Pinterest Tag", category: advertising, pattern: 's\.pinimg\.com|\bpintrk\(' }
+  - { name: "Twitter/X Pixel", category: advertising, pattern: 'static\.ads-twitter\.com|\btwq\(' }
+  # Consent
+  - { name: "OneTrust", category: consent, pattern: 'cdn\.cookielaw\.org|optanon' }
+  - { name: "Cookiebot", category: consent, pattern: 'consent\.cookiebot\.com' }
+  - { name: "Didomi", category: consent, pattern: 'sdk\.privacy-center\.org|didomi' }
+  - { name: "Usercentrics", category: consent, pattern: 'usercentrics\.eu|uc\.js' }
+  - { name: "TrustArc", category: consent, pattern: 'consent\.trustarc\.com|truste' }
+  - { name: "Axeptio", category: consent, pattern: 'axeptio\.eu|axeptio_sdk' }
+  - { name: "Commanders Act", category: consent, pattern: 'tagcommander|commander1|tC_privacy' }
+  # Tag management
+  - { name: "Google Tag Manager", category: tag_management, pattern: 'googletagmanager\.com/gtm\.js' }
+  - { name: "Tealium", category: tag_management, pattern: 'tags\.tiqcdn\.com|utag\.js' }
+  - { name: "Adobe Launch/DTM", category: tag_management, pattern: 'assets\.adobedtm\.com|launch-[A-Za-z0-9]+' }
+  # Other
+  - { name: "reCAPTCHA", category: other, pattern: 'google\.com/recaptcha|grecaptcha' }

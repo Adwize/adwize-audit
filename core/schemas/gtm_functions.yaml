@@ -1,0 +1,42 @@
+# Maps published GTM container tag `function` codes → coarse type/vendor/purpose.
+# Knowledge that drifts as Google adds tag templates. Maintained by the
+# schema-maintainer agent; this committed file is the last-known-good fallback.
+functions:
+  __googtag: { type: googtag, vendor: google, purpose: "Google tag (GA4/Ads config)" }
+  __gaawc: { type: gaawc, vendor: ga4, purpose: "GA4 configuration" }
+  __gaawe: { type: gaawe, vendor: ga4, purpose: "GA4 event" }
+  __awct: { type: awct, vendor: google_ads, purpose: "Google Ads conversion" }
+  __sp: { type: sp, vendor: google_ads, purpose: "Google Ads remarketing" }
+  __gcs: { type: gcs, vendor: google_ads, purpose: "Google Ads conversion (legacy)" }
+  __fls: { type: fls, vendor: floodlight, purpose: "Floodlight sales" }
+  __flc: { type: flc, vendor: floodlight, purpose: "Floodlight counter" }
+  __baut: { type: baut, vendor: microsoft_ads, purpose: "Microsoft/Bing UET" }
+  __twitter_website_tag: { type: twitter, vendor: twitter, purpose: "Twitter/X pixel" }
+  __pntr: { type: pinterest, vendor: pinterest, purpose: "Pinterest tag" }
+  __gclidw: { type: gclidw, vendor: google, purpose: "Conversion Linker" }
+  __awud: { type: awud, vendor: google_ads, purpose: "Google Ads user-provided data (enhanced conversions)" }
+  __html: { type: html, vendor: custom, purpose: "Custom HTML tag" }
+  __img: { type: img, vendor: custom, purpose: "Custom image pixel" }
+
+# function codes starting with this prefix are community/custom templates
+custom_template_prefix: "__cvt_"
+
+type_groups:
+  ga4_config: [googtag, gaawc]
+  ga4_event: [gaawe]
+  ads: [awct, sp, gcs]
+  floodlight: [fls, flc]
+
+# vtp_ params worth keeping per tag (audit-relevant scalars; HTML/JS bodies excluded)
+keep_params:
+  - vtp_eventName
+  - vtp_measurementId
+  - vtp_measurementIdOverride
+  - vtp_tagId
+  - vtp_sendEcommerceData
+  - vtp_enableUserProperties
+  - vtp_enableEuid
+  - vtp_enhancedUserId
+  - vtp_migratedToV2
+
+measurement_id_pattern: '\b(G-[A-Z0-9]{6,}|AW-\d{6,}|DC-\d{6,})\b'

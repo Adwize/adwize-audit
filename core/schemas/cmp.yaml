@@ -1,0 +1,49 @@
+# Consent Management Platforms: detection patterns + "accept all" targets used
+# for consent-simulation (so consent-gated tags reveal themselves during a scan).
+# Maintained by the schema-maintainer agent as CMP UIs change.
+cmps:
+  - name: OneTrust
+    detect: 'cdn\.cookielaw\.org|optanon'
+    accept_selectors:
+      - "#onetrust-accept-btn-handler"
+      - ".ot-pc-refuse-all-handler ~ #accept-recommended-btn-handler"
+  - name: Cookiebot
+    detect: 'consent\.cookiebot\.com'
+    accept_selectors:
+      - "#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll"
+      - "#CybotCookiebotDialogBodyButtonAccept"
+  - name: Didomi
+    detect: 'sdk\.privacy-center\.org|didomi'
+    accept_selectors:
+      - "#didomi-notice-agree-button"
+      - 'button[aria-label="Agree and close"]'
+  - name: Usercentrics
+    detect: 'usercentrics\.eu|uc\.js'
+    accept_selectors:
+      - 'button[data-testid="uc-accept-all-button"]'
+      - "#uc-btn-accept-banner"
+  - name: Axeptio
+    detect: 'axeptio'
+    accept_selectors:
+      - "#axeptio_btn_acceptAll"
+      - "button.axeptio-widget--button__accept"
+  - name: Quantcast
+    detect: 'quantcast|qc-cmp2'
+    accept_selectors:
+      - '.qc-cmp2-summary-buttons button[mode="primary"]'
+  - name: TrustArc
+    detect: 'trustarc|truste'
+    accept_selectors:
+      - "#truste-consent-button"
+
+# Fallback: click a button whose (case-insensitive) text matches any of these.
+generic_accept_texts:
+  - "Accept all"
+  - "Allow all"
+  - "Agree"
+  - "I agree"
+  - "Tout accepter"
+  - "J'accepte"
+  - "Accepter"
+  - "Alle akzeptieren"
+  - "Aceptar todo"
