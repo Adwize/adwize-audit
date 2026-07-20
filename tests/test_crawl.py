@@ -12,6 +12,15 @@ GOOD_HTML = """
 </body></html>
 """
 
+# GTM loader references the dataLayer via a variable (`w[l]=w[l]||[]`), so there
+# is no literal `dataLayer = [` or `dataLayer.push(` for the regex to match.
+GTM_ONLY_HTML = """
+<html><head>
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime()});})(window,document,'script','dataLayer','GTM-RUNTIME');</script>
+<script src="https://www.googletagmanager.com/gtm.js?id=GTM-RUNTIME"></script>
+</head><body></body></html>
+"""
+
 # hardcoded gtag G- in the page AND GTM container also configures GA4 → duplicate
 DUP_HTML = """
 <html><head>
@@ -76,3 +85,32 @@ def test_server_side_transport_detected():
     urls = ["https://sgtm.example.com/g/collect?tid=G-X"]
     d = extract_signals(GOOD_HTML, request_urls=urls, containers={})
     assert d["network"]["server_side"] is True
+
+
+def test_datalayer_runtime_detection_passes():
+    from core.checks.crawl_checks import run_crawl_checks
+
+    # No literal init/push in the HTML, but the browser reports window.dataLayer
+    # exists at runtime → dataLayer is present.
+    d = extract_signals(
+        GTM_ONLY_HTML,
+        request_urls=[],
+        containers={},
+        datalayer_runtime={"exists": True, "length": 2},
+    )
+    assert d["datalayer"]["init"] is False
+    assert d["datalayer"]["push"] is False
+    assert d["datalayer"]["exists"] is True
+    assert d["datalayer"]["length"] == 2
+    st = _statuses(run_crawl_checks(d))
+    assert st["crawl.datalayer_present"] == "pass"
+
+
+def test_datalayer_absent_without_runtime_or_literal():
+    from core.checks.crawl_checks import run_crawl_checks
+
+    # No literal init/push and no runtime signal → warn.
+    d = extract_signals(GTM_ONLY_HTML, request_urls=[], containers={})
+    assert d["datalayer"]["exists"] is False
+    st = _statuses(run_crawl_checks(d))
+    assert st["crawl.datalayer_present"] == "warn"

@@ -210,7 +210,7 @@ checkpoints:
     source: crawl
     automation: auto
     collector: crawl
-    severity: high
+    severity: medium
 
   - id: crawl.no_pii_in_network
     category: Privacy

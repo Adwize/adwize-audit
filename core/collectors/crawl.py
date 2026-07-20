@@ -86,6 +86,14 @@ async def _scrape(context, url: str, timeout: float, accept_consent: bool) -> di
                 except Exception:  # noqa: BLE001
                     pass
         html = await page.content()
+        # Detect the dataLayer at runtime: GTM creates it via `w[l]=w[l]||[]`
+        # (referenced by variable, not by name), so a static HTML regex misses it.
+        try:
+            dl_len = await page.evaluate(
+                "() => Array.isArray(window.dataLayer) ? window.dataLayer.length : -1"
+            )
+        except Exception:  # noqa: BLE001 — page may navigate/close; treat as unknown
+            dl_len = -1
         site_host = urlsplit(url).netloc.removeprefix("www.")
         cookies = [
             {
@@ -102,6 +110,7 @@ async def _scrape(context, url: str, timeout: float, accept_consent: bool) -> di
             "request_urls": request_urls,
             "cookies": cookies,
             "consent": consent,
+            "datalayer_runtime": {"exists": dl_len >= 0, "length": max(int(dl_len), 0)},
         }
     finally:
         await page.close()
@@ -166,7 +175,14 @@ async def collect(
     containers: dict[str, Any] = dict(zip(sorted_ids, fetched))
 
     sigs = [
-        extract_signals(o["html"], o["request_urls"], containers, o["cookies"], o["consent"])
+        extract_signals(
+            o["html"],
+            o["request_urls"],
+            containers,
+            o["cookies"],
+            o["consent"],
+            o.get("datalayer_runtime"),
+        )
         for o in valid
     ]
     pages = [{"url": o["url"], "http_status": o["http_status"]} for o in valid]
