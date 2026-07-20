@@ -91,9 +91,11 @@ def extract_signals(
     containers: dict[str, dict[str, Any]],
     cookies: list[dict[str, Any]] | None = None,
     consent: dict[str, Any] | None = None,
+    datalayer_runtime: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Pure extraction of tag signals from a rendered page + captured requests."""
     cookies = cookies or []
+    datalayer_runtime = datalayer_runtime or {}
     gtm_ids = sorted(set(GTM_SNIPPET.findall(html)) | set(containers.keys()))
     gtag_ids = GTAG_JS.findall(html)
     ga4 = sorted({g for g in gtag_ids if g.startswith("G-")})
@@ -129,7 +131,13 @@ def extract_signals(
     return {
         "tag_ids": {"ga4": ga4, "ads": ads, "ua": ua, "gtm": gtm_ids},
         "gtm_in_head": gtm_in_head,
-        "datalayer": {"init": bool(init), "push": bool(push), "push_before_gtm": push_before_gtm},
+        "datalayer": {
+            "init": bool(init),
+            "push": bool(push),
+            "push_before_gtm": push_before_gtm,
+            "exists": bool(datalayer_runtime.get("exists")),
+            "length": int(datalayer_runtime.get("length", 0)),
+        },
         "consent": {
             "consent_mode": bool(CONSENT_MODE.search(html)),
             "cmps": cmps,
@@ -230,6 +238,8 @@ def merge_signals(sigs: list[dict], containers: dict, pages: list[dict]) -> dict
             "init": any(s.get("datalayer", {}).get("init") for s in sigs),
             "push": any(s.get("datalayer", {}).get("push") for s in sigs),
             "push_before_gtm": any(s.get("datalayer", {}).get("push_before_gtm") for s in sigs),
+            "exists": any(s.get("datalayer", {}).get("exists") for s in sigs),
+            "length": max((s.get("datalayer", {}).get("length", 0) for s in sigs), default=0),
         },
         "consent": {
             "consent_mode": any(s.get("consent", {}).get("consent_mode") for s in sigs),

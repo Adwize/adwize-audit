@@ -21,6 +21,8 @@ class DataLayer(TypedDict):
     init: bool
     push: bool
     push_before_gtm: bool
+    exists: bool  # window.dataLayer observed at runtime
+    length: int  # number of entries in window.dataLayer at capture time
 
 
 class ConsentSignals(TypedDict):

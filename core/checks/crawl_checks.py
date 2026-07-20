@@ -42,6 +42,11 @@ def _pii_token() -> re.Pattern[str]:
     return re.compile(schema_loader.load("pii")["token_pattern"], re.IGNORECASE)
 
 
+@lru_cache
+def _pii_email() -> re.Pattern[str]:
+    return re.compile(schema_loader.load("pii")["email_pattern"])
+
+
 def _finding(checkpoint_id: str, status: Status, title: str, detail: str = "", **extra) -> Finding:
     cp = loader.get(checkpoint_id)
     if cp is None:  # registry drift — surface loudly rather than silently drop
@@ -206,7 +211,7 @@ def check_no_hardcoded_ads_duplicate(d: dict) -> Finding:
 
 def check_datalayer_present(d: dict) -> Finding:
     dl = d.get("datalayer", {})
-    if dl.get("init") or dl.get("push"):
+    if dl.get("exists") or dl.get("init") or dl.get("push"):
         return _finding("crawl.datalayer_present", Status.PASS, "dataLayer present")
     return _finding(
         "crawl.datalayer_present",
@@ -401,16 +406,42 @@ def check_ecommerce_funnel(d: dict) -> Finding:
 
 
 def check_pii_in_events(d: dict) -> Finding:
-    events = d.get("container_summary", {}).get("events", [])
-    flagged = [e for e in events if _pii_token().search(e) or "@" in e]
-    if flagged:
+    """Flag PII risk in configured event names, but only on real evidence.
+
+    A step-label like `contacthost_step4_email` merely contains the word "email"
+    and is not itself PII, so a name-only token match is not enough. We flag when:
+      - an event name embeds an actual email address (strong signal), or
+      - a name matches a PII token AND the container collects user data / a PII
+        param was seen leaving the site (corroborating signal).
+    Otherwise it passes. Reported as a warning, not a hard failure.
+    """
+    cs = d.get("container_summary", {})
+    events = cs.get("events", [])
+    email_re = _pii_email()
+    hard = [e for e in events if "@" in e or email_re.search(e)]
+    if hard:
         return _finding(
             "crawl.no_pii_in_events",
-            Status.FAIL,
-            "Possible PII in event names",
-            f"Event names look like PII: {', '.join(flagged[:10])}",
-            affected_items=[{"event": e} for e in flagged],
+            Status.WARN,
+            "Actual PII in event names",
+            f"Event names embed personal data: {', '.join(hard[:10])}",
+            affected_items=[{"event": e} for e in hard],
         )
+
+    token_named = [e for e in events if _pii_token().search(e)]
+    user_data = bool(cs.get("user_properties") or cs.get("enhanced_conversions"))
+    pii_network = bool(d.get("network", {}).get("pii_hosts"))
+    if token_named and (user_data or pii_network):
+        return _finding(
+            "crawl.no_pii_in_events",
+            Status.WARN,
+            "Event names may indicate PII collection",
+            "These event names reference personal fields and the container "
+            f"collects user data — verify consent and that no PII is sent as "
+            f"event parameters: {', '.join(token_named[:10])}",
+            affected_items=[{"event": e} for e in token_named],
+        )
+
     return _finding("crawl.no_pii_in_events", Status.PASS, "No PII-looking event names")
 
 

@@ -56,12 +56,47 @@ def test_event_inventory_and_naming_and_ecommerce():
 
 
 def test_pii_detection_in_events_and_network():
+    # A PII-token event name ("user_email_submit") corroborated by an actual PII
+    # leak in the network → warn (not a hard fail). Network PII stays a fail.
     containers = {"GTM-X": {"events": ["purchase", "user_email_submit"], "has_ga4": True}}
     urls = ["https://collector.example.com/track?email=jane@doe.com"]
     d = extract_signals(HTML, request_urls=urls, containers=containers)
     fb = _findings_by_id(run_crawl_checks(d))
-    assert fb["crawl.no_pii_in_events"].status.value == "fail"
+    assert fb["crawl.no_pii_in_events"].status.value == "warn"
     assert fb["crawl.no_pii_in_network"].status.value == "fail"
+
+
+def test_pii_event_name_without_evidence_passes():
+    # Step-label event names that merely contain the word "email"/"phone" but with
+    # no actual PII value, no user-data flags, and no PII leaving the site must NOT
+    # be flagged (this was the bookretreats.com false positive).
+    containers = {
+        "GTM-X": {
+            "events": ["contacthost_step4_email", "email_complete", "purchase"],
+            "has_ga4": True,
+        }
+    }
+    d = extract_signals(HTML, request_urls=[], containers=containers)
+    fb = _findings_by_id(run_crawl_checks(d))
+    assert fb["crawl.no_pii_in_events"].status.value == "pass"
+
+
+def test_pii_event_name_with_user_data_warns():
+    # PII-token event name + the container collects user data → warn.
+    containers = {
+        "GTM-X": {"events": ["purchase", "phone_verify"], "user_properties": True, "has_ga4": True}
+    }
+    d = extract_signals(HTML, request_urls=[], containers=containers)
+    fb = _findings_by_id(run_crawl_checks(d))
+    assert fb["crawl.no_pii_in_events"].status.value == "warn"
+
+
+def test_actual_email_in_event_name_warns():
+    # An event name embedding a real email address is a strong signal → warn.
+    containers = {"GTM-X": {"events": ["signup_jane@doe.com"], "has_ga4": True}}
+    d = extract_signals(HTML, request_urls=[], containers=containers)
+    fb = _findings_by_id(run_crawl_checks(d))
+    assert fb["crawl.no_pii_in_events"].status.value == "warn"
 
 
 def test_incomplete_ecommerce_funnel_warns():
