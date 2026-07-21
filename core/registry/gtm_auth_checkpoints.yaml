@@ -1,0 +1,43 @@
+# Authenticated GTM (Tag Manager API v2) checkpoints not already covered by the
+# CSV-derived gtm.* entries. Read from the live container config (tags/triggers/
+# variables) — a public crawl can't see triggers/variables or draft drift.
+checkpoints:
+  - id: gtm.no_orphaned_triggers
+    category: Data Collection
+    tool: GTM
+    description: No triggers are defined but referenced by zero tags (dead config).
+    how_to_check: Cross-reference every trigger id against tags' firing triggers.
+    source: api
+    automation: auto
+    collector: gtm
+    severity: low
+
+  - id: gtm.no_unused_tags
+    category: Data Collection
+    tool: GTM
+    description: No tags are paused or have no firing trigger (never fire).
+    how_to_check: Flag tags with empty firing_trigger_id or paused=true.
+    source: api
+    automation: auto
+    collector: gtm
+    severity: low
+
+  - id: gtm.no_legacy_ua_tags
+    category: Data Collection
+    tool: GTM
+    description: No Universal Analytics tags remain (UA stopped processing in 2023).
+    how_to_check: Flag tags of type ua / classic Google Analytics.
+    source: api
+    automation: auto
+    collector: gtm
+    severity: high
+
+  - id: gtm.conversion_linker_present
+    category: Attribution
+    tool: GTM
+    description: A Conversion Linker tag is present when Google Ads conversion tags exist.
+    how_to_check: If any awct/Ads-conversion tag exists, require a gclidw (Conversion Linker) tag.
+    source: api
+    automation: auto
+    collector: gtm
+    severity: high
