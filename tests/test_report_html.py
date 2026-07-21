@@ -10,19 +10,31 @@ from report import render_html, render_report
 def _result():
     findings = [
         Finding(
-            checkpoint_id="crawl.no_pii_in_events", status=Status.FAIL, severity=Severity.HIGH,
-            category="Privacy", source=Source.CRAWL, title="Possible PII in event names",
-            detail="Event names look like PII.", affected_items=[{"event": "email_complete"}],
+            checkpoint_id="crawl.no_pii_in_events",
+            status=Status.FAIL,
+            severity=Severity.HIGH,
+            category="Privacy",
+            source=Source.CRAWL,
+            title="Possible PII in event names",
+            detail="Event names look like PII.",
+            affected_items=[{"event": "email_complete"}],
             remediation_hint="Rename events to remove PII.",
         ),
         Finding(
-            checkpoint_id="crawl.gtm_installed", status=Status.PASS, severity=Severity.CRITICAL,
-            category="Data Collection", source=Source.CRAWL, title="GTM installed",
+            checkpoint_id="crawl.gtm_installed",
+            status=Status.PASS,
+            severity=Severity.CRITICAL,
+            category="Data Collection",
+            source=Source.CRAWL,
+            title="GTM installed",
         ),
     ]
     data = {
         "tag_ids": {"gtm": ["GTM-X"], "ga4": [], "ads": [], "ua": []},
-        "container_summary": {"events": ["email_complete", "purchase"], "measurement_ids": ["G-XYZ"]},
+        "container_summary": {
+            "events": ["email_complete", "purchase"],
+            "measurement_ids": ["G-XYZ"],
+        },
         "vendors": [{"name": "Meta Pixel", "category": "advertising"}],
         "consent": {"cmps": ["OneTrust"], "accepted": True},
         "cookies": {"total": 3, "third_party": 0},
@@ -31,7 +43,9 @@ def _result():
         target="https://example.com",
         snapshots=[Snapshot(collector="crawl", target="https://example.com", data=data)],
         findings=findings,
-        scores=Scores(overall=82, grade="B", by_category={"Privacy": 88}, counts={"pass": 1, "fail": 1}),
+        scores=Scores(
+            overall=82, grade="B", by_category={"Privacy": 88}, counts={"pass": 1, "fail": 1}
+        ),
         summary="## Executive summary\nSolid base, one PII risk.\n\n## Priorities\n- **Fix PII** in events.\n",
     )
 

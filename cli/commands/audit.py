@@ -61,7 +61,9 @@ def scan(
     ),
     save: bool = typer.Option(True, help="Store the run locally (view later with `audit show`)."),
     report: Optional[Path] = typer.Option(
-        None, "--report", help="Also write a full report here (off by default; .html or .md by extension)."
+        None,
+        "--report",
+        help="Also write a full report here (off by default; .html or .md by extension).",
     ),
 ) -> None:
     """Public-source scan of a website's Google tag setup.
