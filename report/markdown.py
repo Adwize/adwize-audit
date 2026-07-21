@@ -41,6 +41,9 @@ def render_markdown(result: AuditResult, generated_at: str = "") -> str:
     elif r.analysis_status and r.analysis_status != "ran":
         out += ["", "## Analysis", "", f"_Analysis agent not run ({r.analysis_status})._"]
 
+    for name, body in (r.documents or {}).items():
+        out += ["", f"## {name.replace('_', ' ').title()}", "", body]
+
     out += ["", "## Findings", ""]
     for f in sorted(
         r.findings, key=lambda f: (_ORDER[f.status], -f.severity.weight, f.checkpoint_id)

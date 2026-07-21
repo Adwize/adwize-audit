@@ -9,7 +9,7 @@ from core.models.checkpoint import Checkpoint
 
 REGISTRY_DIR = Path(__file__).resolve().parent
 # CSV-derived (authenticated) + hand-maintained crawl-native (public) checkpoints.
-YAML_FILES = ("checkpoints.yaml", "crawl_checkpoints.yaml")
+YAML_FILES = ("checkpoints.yaml", "crawl_checkpoints.yaml", "gtm_auth_checkpoints.yaml")
 
 
 def _read(path: Path) -> list[dict]:

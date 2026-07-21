@@ -8,7 +8,7 @@ from typing import Optional
 import typer
 
 from cli.render import console, render_result
-from report import executive_summary, render_markdown
+from report import executive_summary, write_report
 from storage import repository
 
 app = typer.Typer(help="Run and inspect measurement audits.")
@@ -61,13 +61,14 @@ def scan(
     ),
     save: bool = typer.Option(True, help="Store the run locally (view later with `audit show`)."),
     report: Optional[Path] = typer.Option(
-        None, "--report", help="Also write a full Markdown report to this path (off by default)."
+        None, "--report", help="Also write a full report here (off by default; .html or .md by extension)."
     ),
 ) -> None:
     """Public-source scan of a website's Google tag setup.
 
     Shows a concise result in the terminal. Pass --report <path> to also write a
-    full Markdown report (findings deep-dive, next steps, measurement inventory).
+    full report — format inferred from the extension (`.html`/`.htm` → static
+    HTML, otherwise Markdown).
     """
     from agents.analyst import agent
     from core.checks.crawl_checks import run_crawl_checks
@@ -125,11 +126,7 @@ def scan(
         console.print(f"[dim]Saved as run #{run_id}[/]")
 
     if report is not None:
-        report.parent.mkdir(parents=True, exist_ok=True)
-        report.write_text(
-            render_markdown(result, generated_at=datetime.now().strftime("%Y-%m-%d %H:%M")),
-            encoding="utf-8",
-        )
+        write_report(result, report, generated_at=datetime.now().strftime("%Y-%m-%d %H:%M"))
         console.print(f"[dim]Full report: {report}[/]")
 
 

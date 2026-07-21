@@ -32,3 +32,5 @@ class AuditResult(BaseModel):
     summary: str | None = None  # optional LLM narrative
     analysis_status: str | None = None  # ran | no_key | no_tracking | no_package | error
     analysis_detail: str | None = None  # failure reason when status == error
+    documents: dict[str, str] = Field(default_factory=dict)  # doc-writer outputs, name -> markdown
+    agent_traces: list[dict] = Field(default_factory=list)  # multi-agent graph step traces
