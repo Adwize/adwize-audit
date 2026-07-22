@@ -1,6 +1,6 @@
 [project]
 name = "adwize-audit-core"
-version = "0.1.0"
+version = "0.1.2"
 description = "Open-source GA4/GTM measurement auditing — public-source scanning, deterministic checks, scored reports."
 readme = "README.md"
 license = { text = "Apache-2.0" }
