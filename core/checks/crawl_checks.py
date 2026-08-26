@@ -7,7 +7,8 @@ from __future__ import annotations
 import re
 from functools import lru_cache
 
-from core.models.enums import Status
+from core.collectors.signals import pii_host_bucket
+from core.models.enums import Severity, Status
 from core.models.finding import Finding
 from core.registry import loader
 from core.schemas import loader as schema_loader
@@ -47,7 +48,14 @@ def _pii_email() -> re.Pattern[str]:
     return re.compile(schema_loader.load("pii")["email_pattern"])
 
 
-def _finding(checkpoint_id: str, status: Status, title: str, detail: str = "", **extra) -> Finding:
+def _finding(
+    checkpoint_id: str,
+    status: Status,
+    title: str,
+    detail: str = "",
+    severity: Severity | None = None,
+    **extra,
+) -> Finding:
     cp = loader.get(checkpoint_id)
     if cp is None:  # registry drift — surface loudly rather than silently drop
         raise KeyError(f"unknown checkpoint id: {checkpoint_id}")
@@ -55,7 +63,7 @@ def _finding(checkpoint_id: str, status: Status, title: str, detail: str = "", *
     return Finding(
         checkpoint_id=checkpoint_id,
         status=status,
-        severity=cp.severity,
+        severity=severity or cp.severity,
         category=cp.category,
         source=cp.source,
         title=title,
@@ -445,18 +453,129 @@ def check_pii_in_events(d: dict) -> Finding:
     return _finding("crawl.no_pii_in_events", Status.PASS, "No PII-looking event names")
 
 
+def _pii_hits(d: dict) -> list[dict]:
+    net = d.get("network", {}) or {}
+    hits = net.get("pii_hits")
+    if hits:
+        return hits
+    return [
+        {"host": h, "kinds": [], "bucket": pii_host_bucket(h)} for h in (net.get("pii_hosts") or [])
+    ]
+
+
+_CRM_LABELS = (
+    ("hubspot", "HubSpot"),
+    ("hsforms", "HubSpot"),
+    ("klaviyo", "Klaviyo"),
+    ("salesforce", "Salesforce"),
+    ("force.com", "Salesforce"),
+    ("mailchimp", "Mailchimp"),
+    ("list-manage", "Mailchimp"),
+    ("zendesk", "Zendesk"),
+    ("intercom", "Intercom"),
+    ("marketo", "Marketo"),
+    ("pardot", "Pardot"),
+)
+_ANALYTICS_LABELS = (
+    ("google-analytics", "Google Analytics"),
+    ("googletagmanager", "Google Analytics"),
+    ("googleadservices", "Google Ads"),
+    ("doubleclick", "Google Ads"),
+    ("facebook", "Meta"),
+    ("tiktok", "TikTok"),
+    ("linkedin", "LinkedIn"),
+    ("licdn", "LinkedIn"),
+    ("bing.com", "Microsoft Ads"),
+    ("ads-twitter", "X Ads"),
+    ("hotjar", "Hotjar"),
+    ("amplitude", "Amplitude"),
+    ("segment.", "Segment"),
+    ("omtrdc", "Adobe Analytics"),
+    ("criteo", "Criteo"),
+)
+
+
+def _label_host(host: str, table: tuple[tuple[str, str], ...]) -> str:
+    h = host.lower()
+    for needle, label in table:
+        if needle in h:
+            return label
+    return host
+
+
 def check_pii_in_network(d: dict) -> Finding:
-    hosts = d.get("network", {}).get("pii_hosts", [])
-    if hosts:
+    """Only call it a leak when PII is in an analytics/ads pixel URL.
+
+    Email in a HubSpot/Klaviyo/etc. request is almost always a CRM form POST
+    reflected in the query string — worth noting, not a Google TOS violation.
+    """
+    hits = _pii_hits(d)
+    if not hits:
+        return _finding(
+            "crawl.no_pii_in_network",
+            Status.PASS,
+            "No PII observed in request query strings",
+        )
+
+    analytics = [h for h in hits if h.get("bucket") == "analytics"]
+    crm = [h for h in hits if h.get("bucket") == "crm"]
+    other = [h for h in hits if h.get("bucket") not in ("analytics", "crm")]
+
+    if analytics:
+        hosts = [h["host"] for h in analytics]
+        dests = sorted({_label_host(h, _ANALYTICS_LABELS) for h in hosts})
+        dest = dests[0] if len(dests) == 1 else "analytics or ads pixels"
+        crm_note = ""
+        if crm:
+            crm_hosts = ", ".join(h["host"] for h in crm)
+            crm_note = (
+                f" Separately, email also appeared in CRM requests to {crm_hosts} "
+                "(typical of a form — not sent to Google)."
+            )
         return _finding(
             "crawl.no_pii_in_network",
             Status.FAIL,
-            "PII detected in outgoing requests",
-            f"Emails / PII params sent to: {', '.join(hosts)}",
-            affected_items=[{"host": h} for h in hosts],
+            f"Plaintext email in {dest} request URLs",
+            "Email or PII query parameters were sent to "
+            f"{', '.join(hosts)}. Google/Meta/etc. terms prohibit PII in pixel "
+            f"hits — this is a leak to an advertising or analytics endpoint, not "
+            f"a CRM form.{crm_note}",
+            affected_items=[{"host": h["host"], "bucket": "analytics"} for h in analytics],
+        )
+
+    if crm and not other:
+        hosts = [h["host"] for h in crm]
+        labels = sorted({_label_host(h["host"], _CRM_LABELS) for h in crm})
+        vendor = labels[0] if len(labels) == 1 else "CRM"
+        return _finding(
+            "crawl.no_pii_in_network",
+            Status.WARN,
+            f"Email in {vendor} request URLs (CRM form, not sent to Google)",
+            f"An email address appeared in query strings to {', '.join(hosts)}. "
+            f"That is typical of a {vendor} form or tracking call, not PII sent "
+            "to Google Analytics or Ads. Prefer POST body over query string so "
+            "addresses are not copied into referrers or access logs.",
+            severity=Severity.MEDIUM,
+            affected_items=[{"host": h, "bucket": "crm"} for h in hosts],
+        )
+
+    hosts = [h["host"] for h in hits]
+    crm_bit = ""
+    if crm:
+        crm_bit = (
+            f" Some of these ({', '.join(h['host'] for h in crm)}) look like CRM "
+            "form traffic, not an analytics pixel."
         )
     return _finding(
-        "crawl.no_pii_in_network", Status.PASS, "No PII observed in request query strings"
+        "crawl.no_pii_in_network",
+        Status.WARN,
+        "Email in request query strings (not an analytics pixel)",
+        "Email or PII-looking query parameters were sent to "
+        f"{', '.join(hosts)}. Destination is not Google Analytics, Ads, or a "
+        f"known ad pixel — confirm it is intentional and not a misconfigured "
+        f"tracker.{crm_bit}",
+        severity=Severity.MEDIUM,
+        affected_items=[{"host": h["host"], "bucket": h.get("bucket", "other")} for h in hits],
     )
 
 
@@ -489,7 +608,12 @@ def check_custom_html_tags(d: dict) -> Finding:
             "crawl.custom_html_tags",
             Status.WARN,
             f"{n} custom HTML/JS tag(s) in container",
-            "Custom HTML tags warrant a security / performance / PII review.",
+            f"{n} custom HTML tags bypass GTM's security and permission controls. "
+            "Migrate to community gallery templates where possible for isolation and auditability.",
+            remediation_hint=(
+                "Audit each custom HTML tag. Replace with official GTM templates "
+                "(e.g. Meta Pixel, LinkedIn Insight) to gain permission controls and reduce XSS risk."
+            ),
         )
     return _finding("crawl.custom_html_tags", Status.PASS, "No custom HTML tags")
 
@@ -521,6 +645,69 @@ def check_third_party_cookies(d: dict) -> Finding:
     )
 
 
+def check_paused_tags(d: dict) -> Finding:
+    n = d.get("container_summary", {}).get("paused_count", 0)
+    if not n:
+        return _finding("crawl.paused_tags", Status.PASS, "No paused tags in container")
+    tag_count = sum(c.get("tag_count", 0) for c in d.get("containers", {}).values())
+    pct = round(100 * n / tag_count) if tag_count else 0
+    return _finding(
+        "crawl.paused_tags",
+        Status.WARN,
+        f"{n} paused tag(s) still shipped in container JS",
+        f"Paused tags remain in the published gtm.js file, adding {pct}% dead weight "
+        f"to every page load. Delete them to reduce container size.",
+        remediation_hint="In GTM, delete (not just pause) tags that are no longer needed.",
+    )
+
+
+def check_unused_variables(d: dict) -> Finding:
+    cs = d.get("container_summary", {})
+    total = cs.get("variable_count", 0)
+    unreferenced = cs.get("unreferenced_variable_count", 0)
+    if not total:
+        return _finding("crawl.unused_variables", Status.NA, "No variables detected")
+    if unreferenced <= 5:
+        return _finding(
+            "crawl.unused_variables",
+            Status.PASS,
+            f"{total} variables, {unreferenced} potentially unused",
+        )
+    pct = round(100 * unreferenced / total)
+    return _finding(
+        "crawl.unused_variables",
+        Status.WARN,
+        f"{unreferenced}/{total} variables potentially unused ({pct}%)",
+        "Variables never referenced by tags add dead weight to the container. "
+        "Some may still be used by triggers or other variables (requires account access to confirm).",
+        remediation_hint=(
+            "In GTM, use the variable reference count column to identify and delete "
+            "variables with zero references."
+        ),
+    )
+
+
+def check_duplicate_event_tags(d: dict) -> Finding:
+    cs = d.get("container_summary", {})
+    dupes = cs.get("duplicate_event_names", [])
+    if not dupes:
+        return _finding(
+            "crawl.duplicate_event_tags", Status.PASS, "No duplicate GA4 event tag names"
+        )
+    return _finding(
+        "crawl.duplicate_event_tags",
+        Status.WARN,
+        f"{len(dupes)} GA4 event name(s) configured in multiple tags",
+        f"Duplicate event names across tags risk double-counting: {', '.join(dupes[:10])}. "
+        f"Review whether these share triggers or serve different conditions.",
+        affected_items=[{"event": e} for e in dupes],
+        remediation_hint=(
+            "Consolidate tags firing the same event name into a single tag with "
+            "trigger conditions, or differentiate with event parameters."
+        ),
+    )
+
+
 ALL_CHECKS = (
     check_gtm_installed,
     check_gtm_in_head,
@@ -546,6 +733,9 @@ ALL_CHECKS = (
     check_pii_in_network,
     check_enhanced_conversions,
     check_custom_html_tags,
+    check_paused_tags,
+    check_unused_variables,
+    check_duplicate_event_tags,
     check_vendor_inventory,
     check_third_party_cookies,
 )

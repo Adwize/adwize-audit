@@ -17,6 +17,7 @@ functions:
   __awud: { type: awud, vendor: google_ads, purpose: "Google Ads user-provided data (enhanced conversions)" }
   __html: { type: html, vendor: custom, purpose: "Custom HTML tag" }
   __img: { type: img, vendor: custom, purpose: "Custom image pixel" }
+  __paused: { type: paused, vendor: custom, purpose: "Paused tag (dead weight)" }
 
 # function codes starting with this prefix are community/custom templates
 custom_template_prefix: "__cvt_"

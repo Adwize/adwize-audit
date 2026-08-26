@@ -44,7 +44,7 @@ def _report_analysis(result) -> None:
 @app.command()
 def scan(
     url: str = typer.Argument(..., help="Website URL to audit (no account access needed)."),
-    timeout: float = typer.Option(20.0, help="Page render timeout (seconds)."),
+    timeout: float = typer.Option(30.0, help="Page render timeout (seconds)."),
     pages: int = typer.Option(5, "--pages", help="Max pages to crawl (homepage + discovered)."),
     page: list[str] = typer.Option(
         None, "--page", help="Explicit extra page URL to include (repeatable)."

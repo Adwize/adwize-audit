@@ -47,6 +47,25 @@ def _pii() -> tuple[re.Pattern[str], re.Pattern[str]]:
     return re.compile(s["email_pattern"]), re.compile(s["param_key_pattern"], re.IGNORECASE)
 
 
+@lru_cache
+def _pii_host_patterns() -> tuple[re.Pattern[str], re.Pattern[str]]:
+    s = loader.load("pii")
+    return (
+        re.compile(s["analytics_host_pattern"], re.IGNORECASE),
+        re.compile(s["crm_host_pattern"], re.IGNORECASE),
+    )
+
+
+def pii_host_bucket(host: str) -> str:
+    """analytics = pixel/TOS issue; crm = typical form post; other = review."""
+    analytics, crm = _pii_host_patterns()
+    if analytics.search(host):
+        return "analytics"
+    if crm.search(host):
+        return "crm"
+    return "other"
+
+
 def _network_events(collect_hits: list[str]) -> list[str]:
     events: list[str] = []
     for u in collect_hits:
@@ -54,14 +73,29 @@ def _network_events(collect_hits: list[str]) -> list[str]:
     return events
 
 
-def _pii_in_requests(request_urls: list[str]) -> list[str]:
+def _pii_in_requests(request_urls: list[str]) -> list[dict[str, Any]]:
     email, param_key = _pii()
-    hits: list[str] = []
+    by_host: dict[str, set[str]] = {}
     for u in request_urls:
         dec = unquote(u)
-        if email.search(dec) or param_key.search(dec):
-            hits.append(urlsplit(u).netloc)
-    return sorted(set(hits))[:10]
+        kinds: set[str] = set()
+        if email.search(dec):
+            kinds.add("email")
+        if param_key.search(dec):
+            kinds.add("param")
+        if not kinds:
+            continue
+        by_host.setdefault(urlsplit(u).netloc, set()).update(kinds)
+    hits: list[dict[str, Any]] = []
+    for host in sorted(by_host)[:10]:
+        hits.append(
+            {
+                "host": host,
+                "kinds": sorted(by_host[host]),
+                "bucket": pii_host_bucket(host),
+            }
+        )
+    return hits
 
 
 def _aggregate_containers(containers: dict[str, dict]) -> dict[str, Any]:
@@ -71,6 +105,11 @@ def _aggregate_containers(containers: dict[str, dict]) -> dict[str, Any]:
             s.update(c.get(key, []) or [])
         return sorted(s)
 
+    total_vars = sum(c.get("variables", {}).get("total", 0) for c in containers.values())
+    unreferenced_vars = sum(
+        c.get("variables", {}).get("unreferenced_count", 0) for c in containers.values()
+    )
+
     return {
         "events": union("events"),
         "measurement_ids": union("measurement_ids"),
@@ -78,6 +117,10 @@ def _aggregate_containers(containers: dict[str, dict]) -> dict[str, Any]:
         "user_properties": any(c.get("user_properties") for c in containers.values()),
         "enhanced_conversions": any(c.get("enhanced_conversions") for c in containers.values()),
         "custom_html_count": sum(c.get("custom_html_count", 0) for c in containers.values()),
+        "paused_count": sum(c.get("paused_count", 0) for c in containers.values()),
+        "duplicate_event_names": union("duplicate_event_names"),
+        "variable_count": total_vars,
+        "unreferenced_variable_count": unreferenced_vars,
         "has_floodlight": any(c.get("has_floodlight") for c in containers.values()),
         "has_ads": any(c.get("has_ads") for c in containers.values()),
         "has_ga4": any(c.get("has_ga4") for c in containers.values()),
@@ -118,6 +161,7 @@ def extract_signals(
         domains.add(".".join(d.split(".")[-2:]))
 
     collect_hits = [u for u in request_urls if GA_COLLECT.search(u)]
+    pii_hits = _pii_in_requests(request_urls)
     gcs_seen = any(("gcs=" in u or "gcd=" in u) for u in collect_hits)
     server_side_urls = [
         u
@@ -154,7 +198,8 @@ def extract_signals(
             "server_side": bool(server_side_urls),
             "server_side_urls": sorted(set(server_side_urls))[:10],
             "firing_events": sorted(set(_network_events(collect_hits))),
-            "pii_hosts": _pii_in_requests(request_urls),
+            "pii_hosts": [h["host"] for h in pii_hits],
+            "pii_hits": pii_hits,
         },
         "cookies": {"total": len(cookies), "third_party": len(third_party_cookies)},
         "vendors": vendors.detect(html, request_urls),
@@ -227,6 +272,40 @@ def _union(sigs: list[dict], *path: str) -> list:
     return sorted(acc)
 
 
+_BUCKET_RANK = {"other": 0, "crm": 1, "analytics": 2}
+
+
+def _merge_pii_hits(sigs: list[dict]) -> list[dict[str, Any]]:
+    by_host: dict[str, dict[str, Any]] = {}
+    for sig in sigs:
+        net = sig.get("network", {}) or {}
+        hits = net.get("pii_hits")
+        if hits:
+            raw_hits = hits
+        else:
+            raw_hits = [
+                {"host": h, "kinds": [], "bucket": pii_host_bucket(h)}
+                for h in (net.get("pii_hosts") or [])
+            ]
+        for hit in raw_hits:
+            host = hit.get("host") or ""
+            if not host:
+                continue
+            existing = by_host.setdefault(host, {"host": host, "kinds": set(), "bucket": "other"})
+            existing["kinds"].update(hit.get("kinds") or [])
+            bucket = hit.get("bucket") or pii_host_bucket(host)
+            if _BUCKET_RANK.get(bucket, 0) > _BUCKET_RANK.get(existing["bucket"], 0):
+                existing["bucket"] = bucket
+    return [
+        {
+            "host": host,
+            "kinds": sorted(by_host[host]["kinds"]),
+            "bucket": by_host[host]["bucket"],
+        }
+        for host in sorted(by_host)[:10]
+    ]
+
+
 def merge_signals(sigs: list[dict], containers: dict, pages: list[dict]) -> dict[str, Any]:
     """Aggregate per-page signal dicts into one site-level snapshot."""
     with_gtm = [s for s in sigs if s.get("tag_ids", {}).get("gtm")]
@@ -270,6 +349,7 @@ def merge_signals(sigs: list[dict], containers: dict, pages: list[dict]) -> dict
             "server_side_urls": _union(sigs, "network", "server_side_urls"),
             "firing_events": _union(sigs, "network", "firing_events"),
             "pii_hosts": _union(sigs, "network", "pii_hosts"),
+            "pii_hits": _merge_pii_hits(sigs),
         },
         "cookies": {
             "total": max((s.get("cookies", {}).get("total", 0) for s in sigs), default=0),

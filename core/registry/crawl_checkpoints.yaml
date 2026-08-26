@@ -215,8 +215,8 @@ checkpoints:
   - id: crawl.no_pii_in_network
     category: Privacy
     tool: GA4
-    description: No PII (email/phone/name) leaks into outgoing request query strings.
-    how_to_check: Scan captured request URLs for emails / PII parameter keys.
+    description: No plaintext email or PII query params in analytics/ads request URLs. CRM form traffic is noted separately, not treated as a pixel leak.
+    how_to_check: Scan captured request URLs. Fail only when PII is sent to Google/Meta/etc. pixels; warn for CRM or unknown hosts.
     source: crawl
     automation: auto
     collector: crawl
@@ -239,6 +239,36 @@ checkpoints:
     how_to_check: Count __html tags in the public container.
     source: crawl
     automation: semi
+    collector: crawl
+    severity: medium
+
+  - id: crawl.paused_tags
+    category: Data Quality
+    tool: GTM
+    description: No paused tags remain in the published container (they still ship in gtm.js).
+    how_to_check: Count __paused function entries in the public container tags array.
+    source: crawl
+    automation: auto
+    collector: crawl
+    severity: medium
+
+  - id: crawl.unused_variables
+    category: Data Quality
+    tool: GTM
+    description: Variables (macros) in the container are actively referenced by tags.
+    how_to_check: Compare macro indices referenced in tags against total macro count.
+    source: crawl
+    automation: semi
+    collector: crawl
+    severity: low
+
+  - id: crawl.duplicate_event_tags
+    category: Data Quality
+    tool: GA4
+    description: Each GA4 event name is configured in only one tag (avoid double-counting risk).
+    how_to_check: Count occurrences of each vtp_eventName across GA4 event tags.
+    source: crawl
+    automation: auto
     collector: crawl
     severity: medium
 

@@ -49,6 +49,7 @@ class Network(TypedDict):
     server_side_urls: list[str]
     firing_events: list[str]
     pii_hosts: list[str]
+    pii_hits: list[dict[str, Any]]
 
 
 class Cookies(TypedDict):

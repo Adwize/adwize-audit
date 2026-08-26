@@ -56,14 +56,44 @@ def test_event_inventory_and_naming_and_ecommerce():
 
 
 def test_pii_detection_in_events_and_network():
-    # A PII-token event name ("user_email_submit") corroborated by an actual PII
-    # leak in the network → warn (not a hard fail). Network PII stays a fail.
+    # A PII-token event name corroborated by email in an unknown-host URL →
+    # event names warn. The network hit is a review warning, not a critical leak.
     containers = {"GTM-X": {"events": ["purchase", "user_email_submit"], "has_ga4": True}}
     urls = ["https://collector.example.com/track?email=jane@doe.com"]
     d = extract_signals(HTML, request_urls=urls, containers=containers)
     fb = _findings_by_id(run_crawl_checks(d))
     assert fb["crawl.no_pii_in_events"].status.value == "warn"
-    assert fb["crawl.no_pii_in_network"].status.value == "fail"
+    net = fb["crawl.no_pii_in_network"]
+    assert net.status.value == "warn"
+    assert net.severity.value == "medium"
+    assert "leak" not in net.title.lower()
+    assert d["network"]["pii_hits"][0]["bucket"] == "other"
+
+
+def test_pii_in_analytics_url_is_a_fail():
+    urls = ["https://www.google-analytics.com/g/collect?en=page_view&email=jane@doe.com"]
+    d = extract_signals(HTML, request_urls=urls, containers={})
+    fb = _findings_by_id(run_crawl_checks(d))
+    f = fb["crawl.no_pii_in_network"]
+    assert f.status.value == "fail"
+    assert f.severity.value == "critical"
+    assert "Google Analytics" in f.title
+    assert "jane@" not in f.title
+    assert d["network"]["pii_hits"][0]["bucket"] == "analytics"
+
+
+def test_pii_in_hubspot_url_is_a_crm_warn_not_a_leak():
+    urls = ["https://api.hubspot.com/analytics/v2/events?email=jane@doe.com"]
+    d = extract_signals(HTML, request_urls=urls, containers={})
+    fb = _findings_by_id(run_crawl_checks(d))
+    f = fb["crawl.no_pii_in_network"]
+    assert f.status.value == "warn"
+    assert f.severity.value == "medium"
+    assert "HubSpot" in f.title
+    assert "leak" not in f.title.lower()
+    assert "leak" not in f.detail.lower()
+    assert "jane@" not in f.title and "jane@" not in f.detail
+    assert d["network"]["pii_hits"][0]["bucket"] == "crm"
 
 
 def test_pii_event_name_without_evidence_passes():

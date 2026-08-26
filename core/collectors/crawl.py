@@ -76,7 +76,19 @@ async def _scrape(context, url: str, timeout: float, accept_consent: bool) -> di
     page = await context.new_page()
     try:
         page.on("request", lambda req: request_urls.append(req.url))
-        response = await page.goto(url, wait_until="networkidle", timeout=int(timeout * 1000))
+        # Try networkidle first; fall back to domcontentloaded if the page
+        # keeps long-polling (common with Cloudflare challenge pages).
+        try:
+            response = await page.goto(url, wait_until="networkidle", timeout=int(timeout * 1000))
+        except Exception:  # noqa: BLE001 — timeout on networkidle is expected for heavy sites
+            response = await page.goto(
+                url, wait_until="domcontentloaded", timeout=int(timeout * 1000)
+            )
+            # Give scripts a moment to execute after DOM is ready
+            try:
+                await page.wait_for_load_state("networkidle", timeout=8000)
+            except Exception:  # noqa: BLE001
+                await page.wait_for_timeout(3000)
         status = response.status if response else 0
         if accept_consent:
             consent = await _accept_consent(page)

@@ -52,6 +52,7 @@ def test_merge_signals_unions_and_ors():
             "server_side_urls": [],
             "firing_events": ["page_view"],
             "pii_hosts": [],
+            "pii_hits": [],
         },
         "cookies": {"total": 3, "third_party": 0},
         "vendors": [{"name": "OneTrust", "category": "consent"}],
@@ -77,6 +78,7 @@ def test_merge_signals_unions_and_ors():
             "server_side_urls": ["https://sgtm.x/g/collect"],
             "firing_events": ["purchase"],
             "pii_hosts": ["leaky.example.com"],
+            "pii_hits": [{"host": "leaky.example.com", "kinds": ["email"], "bucket": "other"}],
         },
         "cookies": {"total": 9, "third_party": 5},
         "vendors": [{"name": "Meta Pixel", "category": "advertising"}],
@@ -94,6 +96,9 @@ def test_merge_signals_unions_and_ors():
     assert m["network"]["collect_hits"] == 5  # summed
     assert m["network"]["server_side"] is True
     assert m["network"]["pii_hosts"] == ["leaky.example.com"]
+    assert m["network"]["pii_hits"] == [
+        {"host": "leaky.example.com", "kinds": ["email"], "bucket": "other"}
+    ]
     assert m["cookies"]["third_party"] == 5  # max
     assert {v["name"] for v in m["vendors"]} == {"OneTrust", "Meta Pixel"}
     assert m["consent"]["signals_seen"] is True

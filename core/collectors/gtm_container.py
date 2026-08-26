@@ -94,8 +94,10 @@ def _summarize(tags: list[dict], gtm_js: str) -> dict[str, Any]:
     measurement_ids: set[str] = set()
     ecommerce = user_properties = enhanced_conversions = False
     custom_html = 0
+    paused_count = 0
     vendors: set[str] = set()
     type_counts: dict[str, int] = {}
+    event_tag_events: list[str] = []
 
     for t in tags:
         typ = t["type"]
@@ -106,8 +108,11 @@ def _summarize(tags: list[dict], gtm_js: str) -> dict[str, Any]:
             name = p.get("vtp_eventName")
             if isinstance(name, str) and name:
                 events.append(name)
+                event_tag_events.append(name)
         if typ == "html":
             custom_html += 1
+        if typ == "paused":
+            paused_count += 1
         if p.get("vtp_sendEcommerceData") is True:
             ecommerce = True
         if p.get("vtp_enableUserProperties") is True:
@@ -122,6 +127,12 @@ def _summarize(tags: list[dict], gtm_js: str) -> dict[str, Any]:
     if not measurement_ids:
         measurement_ids.update(s["measurement_id"].findall(gtm_js))
 
+    # Detect duplicate GA4 event tags (same event name fired by multiple tags)
+    from collections import Counter
+
+    event_counts = Counter(event_tag_events)
+    duplicate_events = sorted(e for e, c in event_counts.items() if c > 1)
+
     return {
         "events": sorted(set(events)),
         "event_tag_count": sum(1 for t in tags if t["type"] in ga4_event),
@@ -130,10 +141,42 @@ def _summarize(tags: list[dict], gtm_js: str) -> dict[str, Any]:
         "user_properties": user_properties,
         "enhanced_conversions": enhanced_conversions,
         "custom_html_count": custom_html,
+        "paused_count": paused_count,
+        "duplicate_event_names": duplicate_events,
         "has_ga4": any(t["type"] in ga4_config | ga4_event for t in tags),
         "has_ads": any(t["type"] in ads_types for t in tags),
         "has_floodlight": any(t["type"] in fl_types for t in tags),
         "vendors": sorted(v for v in vendors if v != "custom"),
+        "type_counts": type_counts,
+    }
+
+
+def _analyze_variables(gtm_js: str) -> dict[str, Any]:
+    """Analyze macros (variables) in the container: total count, type breakdown,
+    and how many appear unreferenced by tags."""
+    raw_macros = _extract_json_array(gtm_js, "macros") or []
+    total = len(raw_macros)
+    if not total:
+        return {"total": 0, "unreferenced_count": 0, "type_counts": {}}
+
+    type_counts: dict[str, int] = {}
+    for m in raw_macros:
+        if isinstance(m, dict):
+            fn = (m.get("function") or "unknown").lstrip("_")
+            type_counts[fn] = type_counts.get(fn, 0) + 1
+
+    # Count macros referenced by tags (["macro", N] pattern in the tags section)
+    tags_start = gtm_js.find('"tags":')
+    if tags_start >= 0:
+        tags_section = gtm_js[tags_start:]
+        referenced = set(int(m) for m in re.findall(r'\["macro",(\d+)\]', tags_section))
+    else:
+        referenced = set(range(total))
+
+    unreferenced = total - len(referenced & set(range(total)))
+    return {
+        "total": total,
+        "unreferenced_count": max(0, unreferenced),
         "type_counts": type_counts,
     }
 
@@ -158,5 +201,6 @@ def parse_container(gtm_js: str, container_id: str) -> dict[str, Any]:
         "id": container_id,
         "tag_count": len(tags),
         "tags": tags,
+        "variables": _analyze_variables(gtm_js),
         **_summarize(tags, gtm_js),
     }
