@@ -3,3 +3,9 @@
 token_pattern: '(e[_-]?mail|phone|tel|mobile|first[_-]?name|last[_-]?name|full[_-]?name|birth|ssn|passport)'
 param_key_pattern: '(?:^|[?&_.])(email|e-?mail|phone|tel|mobile|first_?name|last_?name|full_?name)='
 email_pattern: '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+
+# Destinations that make plaintext PII in a URL a Google-TOS / pixel issue.
+analytics_host_pattern: '(google-analytics\.com|googletagmanager\.com|googleadservices\.com|doubleclick\.net|facebook\.com|facebook\.net|analytics\.tiktok\.com|linkedin\.com|licdn\.com|bat\.bing\.com|ads-twitter\.com|pinimg\.com|criteo\.net|hotjar\.com|amplitude\.com|segment\.(com|io)|omtrdc\.net)'
+
+# Destinations where an email in the request is usually a form → CRM, not a leak.
+crm_host_pattern: '(hubspot\.com|klaviyo\.com|salesforce\.com|force\.com|mailchimp\.com|list-manage\.com|zendesk\.com|intercom\.io|marketo\.com|pardot\.com|hsforms\.com)'

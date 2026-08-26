@@ -18,3 +18,7 @@ reviewable; the schema-maintainer/analyst learnings accrue here over time.
   and be hashed — always call it out for a privacy/legal check, never assume ok.
 - **Custom HTML tags** are the usual home of PII leaks, performance drags, and
   unreviewed third-party code — recommend a security review when count > 0.
+- **Email in a request URL is not automatically a PII leak.** Fail that claim
+  only when the host is an analytics/ads pixel (GA, Ads, Meta, …). HubSpot /
+  Klaviyo / Salesforce query-string emails are CRM forms — name the vendor and
+  do not say "leak".

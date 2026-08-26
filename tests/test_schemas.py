@@ -9,6 +9,9 @@ def test_committed_schemas_load():
     assert any(v["name"] == "Meta Pixel" for v in loader.load("vendors")["vendors"])
     assert any(c["name"] == "Didomi" for c in loader.load("cmp")["cmps"])
     assert "purchase" in loader.load("ga4_events")["recommended"]
+    pii = loader.load("pii")
+    assert "analytics_host_pattern" in pii
+    assert "crm_host_pattern" in pii
 
 
 def test_override_dir_wins(tmp_path, monkeypatch):
