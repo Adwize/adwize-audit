@@ -487,8 +487,7 @@ def _st(kind: str, label: str) -> str:
 
 def _gap_row(name: str, status_html: str, action: str) -> str:
     return (
-        f"<tr><td><code>{_esc(name)}</code></td>"
-        f"<td>{status_html}</td><td>{_esc(action)}</td></tr>"
+        f"<tr><td><code>{_esc(name)}</code></td><td>{status_html}</td><td>{_esc(action)}</td></tr>"
     )
 
 
@@ -610,7 +609,9 @@ def _appendix(result: AuditResult, findings: list) -> str:
             f'<div class="analysis">{_md_to_html(body)}</div>'
         )
     problems = [f for f in findings if f.status in (Status.FAIL, Status.WARN)]
-    issues = "".join(_finding_html(f) for f in problems) if problems else "<p>No issues detected.</p>"
+    issues = (
+        "".join(_finding_html(f) for f in problems) if problems else "<p>No issues detected.</p>"
+    )
     all_rows = "".join(
         f"<tr><td>{_STATUS_LABEL[f.status.value]}</td><td><code>{_esc(f.checkpoint_id)}</code></td>"
         f"<td>{_esc(f.severity.value)}</td><td>{_esc(f.title)}</td></tr>"
@@ -687,7 +688,7 @@ def render_html(result: AuditResult, generated_at: str = "") -> str:
 </nav>
 <header class="hero">
   <div class="hero-inner">
-    <p class="kicker">Public crawl · { _esc(r.edition) }</p>
+    <p class="kicker">Public crawl · {_esc(r.edition)}</p>
     <h1><span class="gradient">{_esc(host)}</span></h1>
     <p class="lede">{_esc(_headline(r))}</p>
     <div class="meta-row">
@@ -708,7 +709,7 @@ def render_html(result: AuditResult, generated_at: str = "") -> str:
             _tracking_plan(r),
             _appendix(r, findings),
             "</div>",
-            f'<footer><span>{gen}Adwize · public-source crawl</span>'
+            f"<footer><span>{gen}Adwize · public-source crawl</span>"
             f'<a href="{_CTA_HOME}">getadwize.com</a></footer>',
         ]
     )

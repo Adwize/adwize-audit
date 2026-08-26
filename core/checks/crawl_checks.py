@@ -649,9 +649,7 @@ def check_paused_tags(d: dict) -> Finding:
     n = d.get("container_summary", {}).get("paused_count", 0)
     if not n:
         return _finding("crawl.paused_tags", Status.PASS, "No paused tags in container")
-    tag_count = sum(
-        c.get("tag_count", 0) for c in d.get("containers", {}).values()
-    )
+    tag_count = sum(c.get("tag_count", 0) for c in d.get("containers", {}).values())
     pct = round(100 * n / tag_count) if tag_count else 0
     return _finding(
         "crawl.paused_tags",

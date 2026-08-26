@@ -291,9 +291,7 @@ def _merge_pii_hits(sigs: list[dict]) -> list[dict[str, Any]]:
             host = hit.get("host") or ""
             if not host:
                 continue
-            existing = by_host.setdefault(
-                host, {"host": host, "kinds": set(), "bucket": "other"}
-            )
+            existing = by_host.setdefault(host, {"host": host, "kinds": set(), "bucket": "other"})
             existing["kinds"].update(hit.get("kinds") or [])
             bucket = hit.get("bucket") or pii_host_bucket(host)
             if _BUCKET_RANK.get(bucket, 0) > _BUCKET_RANK.get(existing["bucket"], 0):

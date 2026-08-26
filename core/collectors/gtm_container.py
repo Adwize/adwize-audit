@@ -169,9 +169,7 @@ def _analyze_variables(gtm_js: str) -> dict[str, Any]:
     tags_start = gtm_js.find('"tags":')
     if tags_start >= 0:
         tags_section = gtm_js[tags_start:]
-        referenced = set(
-            int(m) for m in re.findall(r'\["macro",(\d+)\]', tags_section)
-        )
+        referenced = set(int(m) for m in re.findall(r'\["macro",(\d+)\]', tags_section))
     else:
         referenced = set(range(total))
 

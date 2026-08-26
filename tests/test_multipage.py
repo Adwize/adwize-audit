@@ -78,9 +78,7 @@ def test_merge_signals_unions_and_ors():
             "server_side_urls": ["https://sgtm.x/g/collect"],
             "firing_events": ["purchase"],
             "pii_hosts": ["leaky.example.com"],
-            "pii_hits": [
-                {"host": "leaky.example.com", "kinds": ["email"], "bucket": "other"}
-            ],
+            "pii_hits": [{"host": "leaky.example.com", "kinds": ["email"], "bucket": "other"}],
         },
         "cookies": {"total": 9, "third_party": 5},
         "vendors": [{"name": "Meta Pixel", "category": "advertising"}],
