@@ -6,7 +6,7 @@ If you discover a security vulnerability in adwize-audit, please report it respo
 
 **Do NOT open a public GitHub issue for security vulnerabilities.**
 
-Instead, email **security@getadwize.com** with:
+Instead, email **qt@datastarter.ca** with:
 
 - A description of the vulnerability
 - Steps to reproduce
@@ -17,7 +17,7 @@ We will acknowledge your report within 48 hours and aim to release a fix within 
 
 ## Scope
 
-This policy covers the `adwize-audit` CLI tool and its dependencies. It does not cover the hosted Adwize platform (report those separately).
+This policy covers the `adwize-audit` CLI tool and its dependencies. It does not cover the hosted Adwize platform (report those separately to the same address and say they are hosted-product issues).
 
 ## Supported Versions
 
