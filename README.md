@@ -6,7 +6,9 @@
 
 Audit any website's GA4 and GTM measurement setup from the outside. No Google account access required.
 
-`adwize-audit` crawls a public page, parses the GTM container, runs **26 deterministic checks** against a checkpoint registry, and produces a **scored report (A-E)** with actionable findings. An optional LLM agent adds an analyst brief when you provide an OpenAI API key.
+`adwize-audit` crawls a public page, parses the GTM container, runs **29 deterministic checks** against the crawl checkpoint registry (`core/registry/crawl_checkpoints.yaml`), and produces a **scored report (A-E)** with actionable findings. An optional LLM agent adds an analyst brief when you provide an OpenAI API key.
+
+Related open-source tool: **[adwize-oss](https://github.com/Adwize/adwize-oss)** — self-hosted event monitoring with rules, webhooks, CLI, and MCP.
 
 ![adwize-audit CLI output](.github/adwize-audit.png)
 
@@ -80,8 +82,8 @@ See a [full example report (Stripe.com)](docs/example-audit-stripe.md) for what 
 ```
 core/           Audit engine
   collectors/     Playwright crawl + GTM container parser + vendor detection
-  checks/         23 deterministic check functions → Finding objects
-  registry/       Checkpoint definitions (YAML)
+  checks/         29 deterministic crawl check functions → Finding objects
+  registry/       Checkpoint definitions (YAML), including crawl_checkpoints.yaml
   schemas/        Knowledge base (GA4 events, CMP patterns, PII, vendors)
   models/         Pydantic data models
   scoring.py      100-point scoring → grade A–E
@@ -113,6 +115,12 @@ uv run ruff format --check .
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, coding standards, and how to submit changes.
+
+## Related
+
+- [adwize-oss](https://github.com/Adwize/adwize-oss) — self-hosted event monitoring, rules, webhooks, CLI, MCP
+- [Adwize docs](https://docs.getadwize.com) — hosted product documentation
+- [Adwize on GitHub](https://github.com/Adwize)
 
 ## License
 
