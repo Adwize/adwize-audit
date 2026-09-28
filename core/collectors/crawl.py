@@ -78,9 +78,7 @@ async def _scrape(context, url: str, timeout: float, accept_consent: bool) -> di
         page.on("request", lambda req: request_urls.append(req.url))
         # Navigate on DOM ready, then best-effort networkidle. Avoids a full
         # timeout + second goto on chatty sites (analytics, Cloudflare, widgets).
-        response = await page.goto(
-            url, wait_until="domcontentloaded", timeout=int(timeout * 1000)
-        )
+        response = await page.goto(url, wait_until="domcontentloaded", timeout=int(timeout * 1000))
         # Give scripts a moment to execute after DOM is ready
         try:
             await page.wait_for_load_state("networkidle", timeout=8000)
