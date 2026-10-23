@@ -21,7 +21,7 @@ Related open-source tool: **[adwize-oss](https://github.com/Adwize/adwize-oss)**
 | **Privacy** | Consent Mode configured and transmitted, PII in event names, PII in network requests, enhanced conversions review, third-party cookies |
 | **Attribution** | Cross-domain linker decoration |
 
-Each check produces a finding (pass / fail / warn / n/a) with a severity level. The final score starts at 100 and deducts points by severity — critical (25), high (12), medium (5), low (2).
+Each check produces a finding (pass / fail / warn / n/a) with a severity level. The final score starts at 100 and deducts points by severity for each fail — critical (25), high (12), medium (5), low (2). Warnings deduct half.
 
 ## Quick start
 
@@ -59,8 +59,9 @@ cp .env.sample .env
 # Basic scan — terminal output with grade + findings
 adwize-audit audit scan https://example.com
 
-# Save a full Markdown report
+# Save a full report (format follows the path extension)
 adwize-audit audit scan https://example.com --report ./audit.md
+adwize-audit audit scan https://example.com --report ./audit.html
 
 # Force-fetch a container that consent-gates the GTM snippet
 adwize-audit audit scan https://example.com --container GTM-ABC123
@@ -75,7 +76,7 @@ adwize-audit audit show <run_id>
 
 Run any command with `--help` for full options.
 
-See a [full example report (Stripe.com)](docs/example-audit-stripe.md) for what the `--report` output looks like.
+`--report` writes to the path you pass. Extension `.html`/`.htm` produces a static HTML report; any other extension (including `.md`) produces Markdown. See a [full example Markdown report (Stripe.com)](docs/example-audit-stripe.md).
 
 ## Architecture
 
@@ -94,7 +95,7 @@ agents/         LLM agents (key-gated, optional)
 
 cli/            Typer CLI with Rich terminal output
 storage/        Async SQLAlchemy persistence (SQLite default, Postgres optional)
-report/         Markdown report generator
+report/         Markdown + static HTML report generators
 tests/          pytest suite
 ```
 
