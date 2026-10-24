@@ -16,7 +16,7 @@ app = typer.Typer(help="Run and inspect measurement audits.")
 _ANALYSIS_SKIP_MSG = {
     "no_key": "Analysis agent skipped — set OPENAI_API_KEY to enable it.",
     "no_tracking": "Analysis agent skipped — no Google tags detected to analyze.",
-    "no_package": "Analysis agent skipped — install the LLM extra: uv sync --extra llm",
+    "no_package": "Analysis agent skipped — install dependencies: uv sync (openai is a base dependency)",
 }
 
 
